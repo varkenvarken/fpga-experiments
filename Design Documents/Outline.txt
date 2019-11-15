@@ -1,0 +1,51 @@
+design
+
+1. on reset we start listening on the uart line
+2. we wait for some identifying sequence like 21 0a (!\n) 
+and enter a state machine that accepts the following 
+commands:
+
+00 hi lo len
+	receive len bytes and store at address hi,lo
+	return ok\n
+
+01 hi lo len
+	send len bytes stored at address hi,lo
+	return ok\n
+
+02 hi lo
+	run program stored at hi,lo
+
+when a program executes a HLT instruction, execution is 
+stopped and a flag is set. The state machine watches for 
+this flag and returns to interpreting commands. It also 
+clears it and 	return ok\n
+
+So the module implementing the monitor loop is completely 
+separate from the module implementing the cpu
+
+State	Signal	Next state	action/sideeffect
+
+START	21	START1	-
+START	?	START	-
+START1	0a	MONITOR	-
+START1	?	START	-
+MONITOR	00	RECV0	-
+MONITOR	01	SEND0	-
+MONITOR	00	EXEC0	-
+MONITOR ?	ERROR	-
+ERROR	-	NEWLINE	send ?
+NEWLINE	-	MONITOR	send \n
+OK	-	OK1	send o
+OK1	-	NEWLINE	send k
+RECV0	?	RECV1	get hi -> addr
+RECV1	?	RECV2	get lo -> addr
+RECV2	?	RECV3	get len
+RECV3	len	RECV3	get byte -> [addr++], len--
+RECV3	!len	OK	-
+SEND0	?	SEND1	get hi -> addr
+SEND1	?	SEND2	get lo -> addr
+SEND2	?	SEND3	get len
+SEND3	len	SEND3	send [addr++], len--
+SEND3	!len	OK	-
+
