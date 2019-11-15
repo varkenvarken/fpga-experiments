@@ -72,7 +72,8 @@ module top(
 	localparam CHECK = 3'd3;
 	localparam LOAD  = 3'd4;
 	localparam DUMP  = 3'd5;
-	localparam EXEC  = 3'd6;
+	localparam DUMP1 = 3'd6;
+	localparam EXEC  = 3'd7;
 
 	localparam DOLOAD  = 2'd1;
 	localparam DODUMP  = 2'd2;
@@ -86,11 +87,20 @@ module top(
 			ADDR1	:	if(received) begin len        <= rx_byte; state <= CHECK; tx_byte <= rx_byte; transmit <= 1; end
 			CHECK	:	case(len[7:6])
 							DOLOAD	:	state <= LOAD; // e.g. h42 load 2 bytes
-							DODUMP	:	state <= DUMP; // e.g. h82 dump 2 bytes
+							DODUMP	:	begin len[7:6] <= 2'd0; state <= DUMP; end // e.g. h82 dump 2 bytes
 							DOEXEC	:	state <= EXEC; // e.g. hc0 jump
 						endcase
 			LOAD	:	if(received) state <= START;
-			DUMP	:	if(received) state <= START;
+			DUMP	:	if(!is_transmitting) begin
+							if(len) begin
+								tx_byte = len;
+								len = len - 1;
+								transmit <= 1;
+								state <= DUMP1;
+							end else
+								state <= START;
+						end
+			DUMP1	:	state <= DUMP; // single wait cycle between transmits
 			EXEC	:	if(received) state <= START;
 		endcase
 		{LED2, LED1, LED0} <= state;
