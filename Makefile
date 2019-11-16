@@ -3,7 +3,7 @@ PNR = arachne-pnr
 GEN = icepack
 PROG = iceprog 
 
-TOP = puck.v 
+TOP = puck.v
 PCF = icestick.pcf
 DEVICE = 1k
 
@@ -17,7 +17,7 @@ all: $(OUTPUT)
 %.tiles: %.blif
 	$(PNR) -d $(DEVICE) -p $(PCF) -o $@ $<
 
-%.blif: $(TOP)
+%.blif: $(TOP) ram.v cpu.v
 	$(SYN) -q -p "read_verilog $<; hierarchy -libdir . ; synth_ice40 -flatten -blif $@"
 
 clean:
