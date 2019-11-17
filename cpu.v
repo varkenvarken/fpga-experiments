@@ -1,3 +1,5 @@
+`include "alu.v"
+
 module cpu(
 	input rst,
 	input clk,
@@ -18,7 +20,12 @@ module cpu(
 
 	reg [8:0] pc;
 	reg [7:0] opcode, operand, outbyte;
-	reg [7:0] A;
+	reg [7:0] A,B,C;
+	reg [1:0] flags;
+	wire [7:0] result;
+	wire c_out, zero;
+
+	alu alu0(A,B,0,0,result,c_out,zero);
 
 	wire hlt = opcode == 8'h00;
 	wire one = opcode[7] == 0;
@@ -71,6 +78,10 @@ module cpu(
 								case (opcode[6:0])
 									7'd1	:	state <= ECHO;	// OUTA
 									7'd2	:	state <= READ;	// INA
+									7'd4	:	begin			// ADD
+													A <= result;
+													state <= FETCH;
+												end
 									default	:	state <= FETCH; // ignore all undefined 1 byte opcodes
 								endcase
 							end else begin			// 2 byte opcode
@@ -87,6 +98,10 @@ module cpu(
 							case (opcode[6:0])
 								7'd0	:	begin	// LDA immediate
 												A <= operand;
+												state <= FETCH;
+											end
+								7'd1	:	begin	// LDB immediate
+												B <= operand;
 												state <= FETCH;
 											end
 								7'd4	:	begin	// LDA <mem>

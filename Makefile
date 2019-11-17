@@ -17,7 +17,7 @@ all: $(OUTPUT)
 %.tiles: %.blif
 	$(PNR) -d $(DEVICE) -p $(PCF) -o $@ $<
 
-%.blif: $(TOP) ram.v cpu.v
+%.blif: $(TOP) ram.v cpu.v alu.v
 	$(SYN) -q -p "read_verilog $<; hierarchy -libdir . ; synth_ice40 -flatten -blif $@"
 
 clean:
