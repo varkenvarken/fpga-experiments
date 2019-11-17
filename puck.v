@@ -111,7 +111,9 @@ module top(
 		.transmit(c_transmit),
 		.is_transmitting(u_is_transmitting),
 		.halted(c_halted),
-		.startaddr(c_startaddr)
+		.startaddr(c_startaddr),
+		.received(u_received),
+		.rx_byte(u_rx_byte)
 	);
 
 	// interconnect wiring

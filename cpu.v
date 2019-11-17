@@ -11,7 +11,9 @@ module cpu(
 	output reg transmit, 
 	input is_transmitting,
 	output reg halted,
-	input [8:0] startaddr
+	input [8:0] startaddr,
+	input received,
+	input [7:0] rx_byte
 	);
 
 	reg [8:0] pc;
@@ -33,6 +35,7 @@ module cpu(
 	localparam DECODE2= 4'd9;
 	localparam WAIT3  = 4'd10;
 	localparam MEMLOAD= 4'd11;
+	localparam READ   = 4'd12;
 	reg [3:0] state = START;
 
 	always @(posedge clk)
@@ -67,6 +70,7 @@ module cpu(
 							end else if (one) begin // 1 byte opcode
 								case (opcode[6:0])
 									7'd1	:	state <= ECHO;	// OUTA
+									7'd2	:	state <= READ;	// INA
 									default	:	state <= FETCH; // ignore all undefined 1 byte opcodes
 								endcase
 							end else begin			// 2 byte opcode
@@ -111,6 +115,12 @@ module cpu(
 							if(!is_transmitting) begin
 								tx_byte <= outbyte;
 								transmit <= 1;
+								state <= FETCH;
+							end
+						end
+			READ	:	begin
+							if (received) begin
+								A <= rx_byte;
 								state <= FETCH;
 							end
 						end
