@@ -31,6 +31,8 @@ module cpu(
 	localparam WAIT2  = 4'd7;
 	localparam OPLOAD2= 4'd8;
 	localparam DECODE2= 4'd9;
+	localparam WAIT3  = 4'd10;
+	localparam MEMLOAD= 4'd11;
 	reg [3:0] state = START;
 
 	always @(posedge clk)
@@ -83,8 +85,17 @@ module cpu(
 												A <= operand;
 												state <= FETCH;
 											end
+								7'd4	:	begin	// LDA <mem>
+												c_raddr <= operand;
+												state <= WAIT3;
+											end
 								default	:	state <= FETCH; // ignore all undefined 2 byte opcodes
 							endcase
+						end
+			WAIT3	:	state <= MEMLOAD;
+			MEMLOAD	:	begin
+							A <= dread;
+							state <= FETCH;
 						end
 			ECHO	:	begin
 							outbyte <= A;

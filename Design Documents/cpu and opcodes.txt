@@ -1,0 +1,11 @@
+cpu/opcode design
+
+LDA immediate		80 xx
+LDA <mem>			84 mm
+INA
+LDB immediate
+LDB <mem>
+STA <mem>
+OUTA				01
+STB <mem>
+HLT					00
