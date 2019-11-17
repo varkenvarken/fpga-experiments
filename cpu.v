@@ -84,6 +84,7 @@ module cpu(
 									7'd2	:	state <= READ;	// INA
 									7'd4	:	begin			// ADD
 													A <= result;
+													flags[0] <= zero;
 													state <= FETCH;
 												end
 									default	:	state <= FETCH; // ignore all undefined 1 byte opcodes
@@ -120,6 +121,10 @@ module cpu(
 											end
 								7'h10	:	begin   // BRA <offset>
 												pc <= jmpaddress;
+												state <= FETCH;
+											end
+								7'h11	:	begin   // BRZ <offset>
+												pc <= jmpaddressz;
 												state <= FETCH;
 											end
 								default	:	state <= FETCH; // ignore all undefined 2 byte opcodes

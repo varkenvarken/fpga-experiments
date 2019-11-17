@@ -12,5 +12,6 @@ module alu(
 	assign result = {0, a} + {0, b} + { 8'd0, carry};  
 	assign carry_out = result[8];
 	assign c = result[7:0];
+	assign zero = (c == 0);
 
 endmodule
