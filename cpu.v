@@ -27,7 +27,15 @@ module cpu(
 	wire [8:0] jmpaddress, jmpaddressc, jmpaddressz;
 	wire branchcondition;
 
-	alu alu0(A,B,0,0,result,c_out,zero);
+	alu alu0(
+		.a(A),
+		.b(B),
+		.carry(flags[1]),
+		.op(0),
+		.c(result),
+		.carry_out(c_out),
+		.zero(zero)
+		);
 
 	branchlogic branchlogic0(pc, operand, flags, jmpaddress, jmpaddressc, jmpaddressz);
 
@@ -82,9 +90,11 @@ module cpu(
 								case (opcode[6:0])
 									7'd1	:	state <= ECHO;	// OUTA
 									7'd2	:	state <= READ;	// INA
+									7'd3	:	begin flags <= 0; state <= FETCH;  end	// CLF
 									7'd4	:	begin			// ADD
 													A <= result;
 													flags[0] <= zero;
+													flags[1] <= c_out;
 													state <= FETCH;
 												end
 									default	:	state <= FETCH; // ignore all undefined 1 byte opcodes

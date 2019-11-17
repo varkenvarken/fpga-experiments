@@ -1,19 +1,20 @@
 cpu/opcode design
 
-LDA immediate		80 xx
-LDA <mem>			84 mm
-INA					02
-LDB immediate		81 xx
+LDA immediate		80 xx	load a immediate
+LDA <mem>			84 mm	load a from mem
+INA					02		input a from serial
+LDB immediate		81 xx	load b immediate
 LDB <mem>
-STA <mem>			88 mm
-OUTA				01
+STA <mem>			88 mm	store a to mem
+OUTA				01		output a to serial
 STB <mem>
-HLT					00
-ADD					04
-BRA <offset>		90 xx
-BRZ <offset>		91 xx
+HLT					00		halt
+ADD					04		add
+BRA <offset>		90 xx	branch
+BRZ <offset>		91 xx	branch if zero
+CLF					03		clear flags
 
---------
+-------- simple add
 LDA #77
 LDB #33
 ADD
@@ -22,7 +23,7 @@ HTL
 --------
 00004780778133040100	output: aa
 
---------
+-------- branches
 BRA +4		90 04
 LDA #77		80 77
 OUTA		01
@@ -34,7 +35,7 @@ BRA -9		90 f5			// 11110101 -> 11110110 -> 00001001 == -9
 00004b90048077010080660190f5	output: 66 77
 
 
---------
+-------- branch if zero
 LDA #0		80 00
 LDB #0		81 00
 ADD			04
@@ -46,4 +47,18 @@ OUTA		01
 HLT			00
 --------
 00004d80008100049102010080010100	output: 01
+
+-------- 16 byte add
+CLF			03
+LDA #f0		80 f0
+LDB #f0		81 f0
+ADD			04
+OUTA		01
+LDA #0		80 00
+LDB #0		81 00
+ADD			04
+OUTA		01
+HLT			00
+--------
+00004e0380f081f0040180008100040100	output: e0 01
 
