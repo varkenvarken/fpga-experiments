@@ -44,9 +44,9 @@ module top(
 	wire [8:0] r_waddr,r_raddr;
 
 	// cpu wires
-	wire c_reset, c_write_en, c_led, c_transmit, c_is_transmitting, c_halted;
+	wire c_reset, c_write_en, c_led, c_transmit, c_halted;
 	wire [7:0] c_dwrite, c_tx_byte;
-	wire [8:0] c_raddr, c_waddr;
+	wire [8:0] c_raddr, c_waddr, c_startaddr;
 
 	// monitor wires and registers
 	reg monitor_control = 1;
@@ -63,6 +63,9 @@ module top(
 	reg [7:0] m_din;
 	reg m_write_en;
 	reg [8:0] m_waddr,m_raddr;
+
+	// access to cpu
+	reg m_c_reset = 0;
 
 	// uart instantiation
 	uart #(
@@ -94,22 +97,22 @@ module top(
 		.dout(r_dout)
 	);
 
-/*	// cpu instantiation
+	// cpu instantiation
 	cpu cpu0(
 		.rst(c_reset),
 		.clk(iCE_CLK),
 		.dread(r_dout), // from ram to cpu
-		.c_raddr(),
-		.c_waddr(),
+		.c_raddr(c_raddr),
+		.c_waddr(c_waddr),
 		.dwrite(c_dwrite), // from cpu to ram
 		.write_en(c_write_en), 
 		.led(c_led), 
 		.tx_byte(c_tx_byte),
 		.transmit(c_transmit),
-		.is_transmitting(c_is_transmitting),
-		.halted(c_halted)
+		.is_transmitting(u_is_transmitting),
+		.halted(c_halted),
+		.startaddr(c_startaddr)
 	);
-*/
 
 	// interconnect wiring
 	// led access comes from uart as well as cpu
@@ -126,17 +129,22 @@ module top(
 	assign r_write_en = monitor_control ? m_write_en : c_write_en;
 	assign r_din = monitor_control ? m_din : c_dwrite;
 
+	// cpu reset tied to register
+	assign c_reset = m_c_reset;
+	assign c_startaddr = m_addr[8:0];
+	
 	// monitor program state machine
-	reg [2:0] m_state = 0;
+	reg [3:0] m_state = 0;
 
-	localparam START = 3'd0;
-	localparam ADDR0 = 3'd1;
-	localparam ADDR1 = 3'd2;
-	localparam CHECK = 3'd3;
-	localparam LOAD  = 3'd4;
-	localparam LOAD1 = 3'd5;
-	localparam DUMP  = 3'd6;
-	localparam DUMP1 = 3'd7;
+	localparam START	= 4'd0;
+	localparam ADDR0	= 4'd1;
+	localparam ADDR1	= 4'd2;
+	localparam CHECK	= 4'd3;
+	localparam LOAD		= 4'd4;
+	localparam LOAD1	= 4'd5;
+	localparam DUMP		= 4'd6;
+	localparam DUMP1	= 4'd7;
+	localparam RUNSTART	= 4'd8;
 
 	localparam DOLOAD  = 2'd1;
 	localparam DODUMP  = 2'd2;
@@ -145,49 +153,55 @@ module top(
 	always @(posedge iCE_CLK) begin
 		m_transmit <= 0;
 		m_write_en <= 0;
-		c_reset <= 0;
+		m_c_reset <= 0;
 
-		//if(c_halted) begin monitor_control <= 1; end
-
-		case(m_state)
-			START	:	if(u_received) begin m_addr[15:8] <= u_rx_byte; m_state <= ADDR0; m_tx_byte <= u_rx_byte; m_transmit <= 1; end
-			ADDR0	:	if(u_received) begin m_addr[ 7:0] <= u_rx_byte; m_state <= ADDR1; m_tx_byte <= u_rx_byte; m_transmit <= 1; end
-			ADDR1	:	if(u_received) begin m_len        <= u_rx_byte; m_state <= CHECK; m_tx_byte <= u_rx_byte; m_transmit <= 1; end
-			CHECK	:	case(m_len[7:6])
-							DOLOAD	:	begin m_len[7:6] <= 2'd0; m_state <= LOAD; end // e.g. h42 load 2 bytes
-							DODUMP	:	begin m_len[7:6] <= 2'd0; m_state <= DUMP; end // e.g. h82 dump 2 bytes
-							DOEXEC	:	begin c_reset <= 1; m_state <= START; monitor_control <= 0; end // e.g. hc0 start cpu
-						endcase
-			LOAD	:	if(u_received) begin
-							if(m_len) begin
-								m_waddr = m_addr[8:0];
-								m_din = u_rx_byte;
-								m_write_en = 1;
-								m_len = m_len - 1;
-								m_tx_byte = u_rx_byte;
-								m_transmit <= 1;
-								m_state <= LOAD1;
-							end else
-								m_state <= START;
-						end
-			LOAD1	:	begin
-							m_addr[8:0] = m_addr[8:0] + 1;
-							m_state <= m_len ? LOAD : START;
-						end
-			DUMP	:	if(m_len) begin
-							m_len = m_len - 1;
-							m_raddr = m_addr[8:0];
-							m_state <= DUMP1;
-						end else
-							m_state <= START;
-			DUMP1	:	if(!u_is_transmitting) begin
-							m_addr[8:0] = m_addr[8:0] + 1;
-							m_tx_byte = r_dout;
-							m_transmit <= 1;
-							m_state <= DUMP; // single wait cycle between transmits
-						end
-		endcase
-		{LED2, LED1, LED0} <= m_state;
+		if (c_halted) begin
+			monitor_control <= 1;
+		end else begin
+			if (monitor_control) begin
+				case(m_state)
+					START	:	if(u_received) begin m_addr[15:8] <= u_rx_byte; m_state <= ADDR0; m_tx_byte <= u_rx_byte; m_transmit <= 1; end
+					ADDR0	:	if(u_received) begin m_addr[ 7:0] <= u_rx_byte; m_state <= ADDR1; m_tx_byte <= u_rx_byte; m_transmit <= 1; end
+					ADDR1	:	if(u_received) begin m_len        <= u_rx_byte; m_state <= CHECK; m_tx_byte <= u_rx_byte; m_transmit <= 1; end
+					CHECK	:	case(m_len[7:6])
+									DOLOAD	:	begin m_len[7:6] <= 2'd0; m_state <= LOAD; end // e.g. h42 load 2 bytes
+									DODUMP	:	begin m_len[7:6] <= 2'd0; m_state <= DUMP; end // e.g. h82 dump 2 bytes
+									DOEXEC	:	begin m_c_reset <= 1; m_state <= RUNSTART; monitor_control <= 0; end // e.g. hc0 start cpu
+								endcase
+					LOAD	:	if(u_received) begin
+									if(m_len) begin
+										m_waddr = m_addr[8:0];
+										m_din = u_rx_byte;
+										m_write_en = 1;
+										m_len = m_len - 1;
+										m_tx_byte = u_rx_byte;
+										m_transmit <= 1;
+										m_state <= LOAD1;
+									end else
+										m_state <= START;
+								end
+					LOAD1	:	begin
+									m_addr[8:0] = m_addr[8:0] + 1;
+									m_state <= m_len ? LOAD : START;
+								end
+					DUMP	:	if(m_len) begin
+									m_len = m_len - 1;
+									m_raddr = m_addr[8:0];
+									m_state <= DUMP1;
+								end else
+									m_state <= START;
+					DUMP1	:	if(!u_is_transmitting) begin
+									m_addr[8:0] = m_addr[8:0] + 1;
+									m_tx_byte = r_dout;
+									m_transmit <= 1;
+									m_state <= DUMP; // single wait cycle between transmits
+								end
+				endcase
+				{LED2, LED1, LED0} <= m_state;
+			end else begin
+				if (m_state == RUNSTART) begin m_c_reset <= 1; m_state <= START; end
+			end
+		end
 	end
 
 endmodule
