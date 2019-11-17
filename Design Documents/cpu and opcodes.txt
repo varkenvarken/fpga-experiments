@@ -5,7 +5,7 @@ LDA <mem>			84 mm
 INA
 LDB immediate
 LDB <mem>
-STA <mem>
+STA <mem>			88 mm
 OUTA				01
 STB <mem>
 HLT					00

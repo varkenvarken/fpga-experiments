@@ -89,6 +89,12 @@ module cpu(
 												c_raddr <= operand;
 												state <= WAIT3;
 											end
+								7'd8	:	begin	// STA <mem> (no extra wait cycle because we can write and read at the same time)
+												c_waddr <= operand;
+												write_en <= 1;
+												dwrite <= A;
+												state <= FETCH;
+											end
 								default	:	state <= FETCH; // ignore all undefined 2 byte opcodes
 							endcase
 						end
