@@ -24,8 +24,12 @@ module cpu(
 	reg [1:0] flags;
 	wire [7:0] result;
 	wire c_out, zero;
+	wire [8:0] jmpaddress, jmpaddressc, jmpaddressz;
+	wire branchcondition;
 
 	alu alu0(A,B,0,0,result,c_out,zero);
+
+	branchlogic branchlogic0(pc, operand, flags, jmpaddress, jmpaddressc, jmpaddressz);
 
 	wire hlt = opcode == 8'h00;
 	wire one = opcode[7] == 0;
@@ -96,22 +100,26 @@ module cpu(
 						end
 			DECODE2	:	begin
 							case (opcode[6:0])
-								7'd0	:	begin	// LDA immediate
+								7'h00	:	begin	// LDA immediate
 												A <= operand;
 												state <= FETCH;
 											end
-								7'd1	:	begin	// LDB immediate
+								7'h01	:	begin	// LDB immediate
 												B <= operand;
 												state <= FETCH;
 											end
-								7'd4	:	begin	// LDA <mem>
+								7'h04	:	begin	// LDA <mem>
 												c_raddr <= operand;
 												state <= WAIT3;
 											end
-								7'd8	:	begin	// STA <mem> (no extra wait cycle because we can write and read at the same time)
+								7'h08	:	begin	// STA <mem> (no extra wait cycle because we can write and read at the same time)
 												c_waddr <= operand;
 												write_en <= 1;
 												dwrite <= A;
+												state <= FETCH;
+											end
+								7'h10	:	begin   // BRA <offset>
+												pc <= jmpaddress;
 												state <= FETCH;
 											end
 								default	:	state <= FETCH; // ignore all undefined 2 byte opcodes
