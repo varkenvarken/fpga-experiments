@@ -8,8 +8,10 @@ module alu(
 	output zero
 	);
 
-	wire [8:0] result;
-	assign result = {0, a} + {0, b} + { 8'd0, carry};  
+	wire [8:0] add,adc,result;
+	assign add = {0, a} + {0, b};
+	assign adc = add + { 8'd0, carry};
+	assign result = op[3:1] ? {0, a} : ( op[0] ? add : adc ); // all undefined opcodes simply pass A thru
 	assign carry_out = result[8];
 	assign c = result[7:0];
 	assign zero = (c == 0);
