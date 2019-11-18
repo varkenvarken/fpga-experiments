@@ -20,6 +20,7 @@ module cpu(
 	parameter addr_width = 9;
 
 	reg [addr_width-1:0] pc;
+	reg [addr_width-1:0] sp; // stack pointer (could be reduced to 8 bits to save space); will be initialized to the last address
 	reg [7:0] opcode, operand, outbyte;
 	reg [7:0] A,B,C;
 	reg [1:0] flags;
@@ -56,6 +57,9 @@ module cpu(
 	localparam WAIT3  = 4'd10;
 	localparam MEMLOAD= 4'd11;
 	localparam READ   = 4'd12;
+	localparam STACKPUSH= 4'd13;
+	localparam STACKPOP = 4'd14;
+	localparam STACKPUSH2= 4'd15;
 	reg [3:0] state = START;
 
 	always @(posedge clk)
@@ -68,8 +72,9 @@ module cpu(
 		case(state)
 			START	:	if(rst) begin 
 							pc <= startaddr;
+							sp <= {addr_width{1'b1}};
 							state <= FETCH;
-							led <= 1;
+							// led <= 1;
 						end
 			FETCH	:	begin
 							c_raddr <= pc; 
@@ -89,11 +94,24 @@ module cpu(
 								led <= 0;
 							end else if (one) begin // 1 byte opcode
 								case (opcode[6:4])
-									3'h0	:	case (opcode[3:0])
+									3'h0	:	case (opcode[3:0])	// specials
 										4'h1	:	state <= ECHO;	// OUTA
 										4'h2	:	state <= READ;	// INA
 										4'h3	:	begin flags <= 0; state <= FETCH;  end	// CLF
 										default	:	state <= FETCH; // ignore all undefined 1 byte opcodes  NOTE!!! w.o. this default state stays DECODE and we have an issue then
+												endcase
+									3'h1	:	case (opcode[3:0])	// stack
+										4'h8	:	begin			// PUSHA
+														c_waddr <= sp;
+														write_en <= 1;
+														dwrite <= A;
+														state <= STACKPUSH;
+														led <= 1;
+													end
+										//4'h9	:
+										//4'hc	:
+										//4'hd	: 
+										default	:	state <= FETCH; // ignore all undefined 1 byte opcodes
 												endcase
 									3'h7	:	begin				// ALU 
 													A <= result;
@@ -163,6 +181,11 @@ module cpu(
 			WAIT3	:	state <= MEMLOAD;
 			MEMLOAD	:	begin
 							A <= dread;
+							state <= FETCH;
+						end
+			STACKPUSH:	state <= STACKPUSH2;
+			STACKPUSH2:	begin
+							sp <= sp - 1;
 							state <= FETCH;
 						end
 			ECHO	:	begin

@@ -173,7 +173,7 @@ module top(
 								endcase
 					LOAD	:	if(u_received) begin
 									if(m_len) begin
-										m_waddr = m_addr[8:0];
+										m_waddr = m_addr[`ADDR_WIDTH-1:0];
 										m_din = u_rx_byte;
 										m_write_en = 1;
 										m_len = m_len - 1;
@@ -184,17 +184,17 @@ module top(
 										m_state <= START;
 								end
 					LOAD1	:	begin
-									m_addr[8:0] = m_addr[8:0] + 1;
+									m_addr[`ADDR_WIDTH-1:0] = m_addr[`ADDR_WIDTH-1:0] + 1;
 									m_state <= m_len ? LOAD : START;
 								end
 					DUMP	:	if(m_len) begin
 									m_len = m_len - 1;
-									m_raddr = m_addr[8:0];
+									m_raddr = m_addr[`ADDR_WIDTH-1:0];
 									m_state <= DUMP1;
 								end else
 									m_state <= START;
 					DUMP1	:	if(!u_is_transmitting) begin
-									m_addr[8:0] = m_addr[8:0] + 1;
+									m_addr[`ADDR_WIDTH-1:0] = m_addr[`ADDR_WIDTH-1:0] + 1;
 									m_tx_byte = r_dout;
 									m_transmit <= 1;
 									m_state <= DUMP; // single wait cycle between transmits
