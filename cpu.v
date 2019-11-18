@@ -114,35 +114,51 @@ module cpu(
 							state <= DECODE2;
 						end
 			DECODE2	:	begin
-							case (opcode[6:0])
-								7'h00	:	begin	// LDA immediate
-												A <= operand;
-												state <= FETCH;
-											end
-								7'h01	:	begin	// LDB immediate
-												B <= operand;
-												state <= FETCH;
-											end
-								7'h04	:	begin	// LDA <mem>
-												c_raddr <= operand;
-												state <= WAIT3;
-											end
-								7'h08	:	begin	// STA <mem> (no extra wait cycle because we can write and read at the same time)
-												c_waddr <= operand;
-												write_en <= 1;
-												dwrite <= A;
-												state <= FETCH;
-											end
-								7'h10	:	begin   // BRA <offset>
-												pc <= jmpaddress;
-												state <= FETCH;
-											end
-								7'h11	:	begin   // BRZ <offset>
-												pc <= jmpaddressz;
-												state <= FETCH;
-											end
-								default	:	state <= FETCH; // ignore all undefined 2 byte opcodes
-							endcase
+							if (opcode[6:5] == 0) begin // regular opcodes
+								case (opcode[4:0])
+									5'h00	:	begin	// LDA immediate
+													A <= operand;
+													state <= FETCH;
+												end
+									5'h01	:	begin	// LDB immediate
+													B <= operand;
+													state <= FETCH;
+												end
+									5'h04	:	begin	// LDA <mem>
+													c_raddr <= operand; // apparently automatically extended to width of c_raddr
+													state <= WAIT3;
+												end
+									5'h08	:	begin	// STA <mem> (no extra wait cycle because we can write and read at the same time)
+													c_waddr <= operand;
+													write_en <= 1;
+													dwrite <= A;
+													state <= FETCH;
+												end
+									5'h10	:	begin   // BRA <offset>
+													pc <= jmpaddress;
+													state <= FETCH;
+												end
+									5'h11	:	begin   // BRZ <offset>
+													pc <= jmpaddressz;
+													state <= FETCH;
+												end
+									default	:	state <= FETCH; // ignore all undefined 2 byte opcodes
+								endcase
+							end else begin // long address opcodes
+								case (opcode[6:5])
+									2'h2	:	begin	// LDA <longmem>
+													c_raddr <= {opcode[addr_width-8:0], operand};
+													state <= WAIT3;
+												end
+									2'h1	:	begin	// STA <longmem>
+													c_waddr <= {opcode[addr_width-8:0], operand};
+													write_en <= 1;
+													dwrite <= A;
+													state <= FETCH;
+												end
+									default	:	state <= FETCH; // ignore all undefined 2 byte longmem opcodes
+								endcase
+							end
 						end
 			WAIT3	:	state <= MEMLOAD;
 			MEMLOAD	:	begin

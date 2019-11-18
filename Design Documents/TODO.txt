@@ -1,11 +1,11 @@
 TODO
 
-- parameterize address bus width
+X parameterize address bus width
 
 - implement 'long' address instuctions 
 	high bits encoded in opcode, low bits encoded in operand
-	LDA  $mmm
-	STA  $mmm
+x	LDA  $mmm
+x	STA  $mmm
 	CALL $mmm (see: stack based instructions)
 	only for A register to save on opcode bits
 
@@ -23,8 +23,8 @@ TODO
 	LDA [sp] xx         Load register relative to stack pointer
 
 - expand ALU operations
-	ADD done
-	ADC done
+x	ADD done
+x	ADC done
 
 - create interactive monitor in Python (with getline support for history and autocomplete)
 	LOAD addr* "string"

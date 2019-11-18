@@ -50,3 +50,13 @@ HLT			00
 --------
 00004e0380f081f0710180008100710100	output: e0 01
 
+
+------- longmem load and store
+LDA #77		80 77
+STA $0100	a1 00
+LDA # 88	80 88
+LDA $0100	c1 00
+OUTA		01
+HLT			00
+-------
+00004a8077a1008088c1000100	output 77
