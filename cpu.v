@@ -28,12 +28,17 @@ module cpu(
 	wire c_out, zero;
 	wire [addr_width-1:0] jmpaddress, jmpaddressc, jmpaddressz;
 	wire branchcondition;
+	wire [3:0] alucode;
+	wire [1:0] register;
+	
+	assign alucode = opcode[3:0];
+	assign register= opcode[1:0];
 
 	alu alu0(
 		.a(A),
 		.b(B),
 		.carry(flags[1]),
-		.op(0),
+		.op(alucode),
 		.c(result),
 		.carry_out(c_out),
 		.zero(zero)
@@ -74,7 +79,7 @@ module cpu(
 							pc <= startaddr;
 							sp <= {addr_width{1'b1}};
 							state <= FETCH;
-							// led <= 1;
+							led <= 1;
 						end
 			FETCH	:	begin
 							c_raddr <= pc; 
@@ -106,10 +111,13 @@ module cpu(
 														write_en <= 1;
 														dwrite <= A;
 														state <= STACKPUSH;
-														led <= 1;
 													end
 										//4'h9	:
-										//4'hc	:
+										4'hc	:	begin			// POPA
+														sp <= sp + 1;
+														c_raddr <= sp + 1;
+														state <= WAIT3;
+													end
 										//4'hd	: 
 										default	:	state <= FETCH; // ignore all undefined 1 byte opcodes
 												endcase
