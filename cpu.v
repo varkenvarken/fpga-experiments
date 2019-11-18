@@ -87,11 +87,14 @@ module cpu(
 								halted <= 1;
 								led <= 0;
 							end else if (one) begin // 1 byte opcode
-								case (opcode[6:0])
-									7'd1	:	state <= ECHO;	// OUTA
-									7'd2	:	state <= READ;	// INA
-									7'd3	:	begin flags <= 0; state <= FETCH;  end	// CLF
-									7'd4	:	begin			// ADD
+								case (opcode[6:4])
+									3'h0	:	case (opcode[3:0])
+										4'h1	:	state <= ECHO;	// OUTA
+										4'h2	:	state <= READ;	// INA
+										4'h3	:	begin flags <= 0; state <= FETCH;  end	// CLF
+										default	:	state <= FETCH; // ignore all undefined 1 byte opcodes  NOTE!!! w.o. this default state stays DECODE and we have an issue then
+												endcase
+									3'h7	:	begin				// ALU 
 													A <= result;
 													flags[0] <= zero;
 													flags[1] <= c_out;

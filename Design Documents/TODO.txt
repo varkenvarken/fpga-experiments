@@ -1,0 +1,44 @@
+TODO
+
+- parameterize address bus width
+
+- implement 'long' address instuctions 
+	high bits encoded in opcode, low bits encoded in operand
+	LDA  $mmm
+	STA  $mmm
+	CALL $mmm (see: stack based instructions)
+	only for A register to save on opcode bits
+
+- implement stack with stack based instructions
+
+	CALL $mmm
+	RET
+	PUSHA
+	PUSHB
+	...
+	POP
+	POPA
+	POPB
+	...
+	LDA [sp] xx         Load register relative to stack pointer
+
+- expand ALU operations
+	ADD done
+	ADC done
+
+- create interactive monitor in Python (with getline support for history and autocomplete)
+	LOAD addr* "string"
+	LOAD addr* HexString
+	LOADFILE addr* filename
+	DUMP addr* len* filename*
+	RUN addr*
+	QUIT
+	EXIT
+	
+	note monitor should be expanded to return 'ok' after cpu is halted.
+	That way we also could implement some timing info.
+
+- create tiny assembler in Python
+	puck.py filename.pck > filename.asm
+	
+	
