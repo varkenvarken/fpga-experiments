@@ -49,23 +49,28 @@ module cpu(
 	wire hlt = opcode == 8'h00;
 	wire one = opcode[7] == 0;
 
-	localparam START  = 4'd0;
-	localparam FETCH  = 4'd1;
-	localparam DECODE = 4'd2;
-	localparam OPLOAD = 4'd3;
-	localparam ECHO   = 4'd4;
-	localparam ECHO1  = 4'd5;
-	localparam WAIT   = 4'd6;
-	localparam WAIT2  = 4'd7;
-	localparam OPLOAD2= 4'd8;
-	localparam DECODE2= 4'd9;
-	localparam WAIT3  = 4'd10;
-	localparam MEMLOAD= 4'd11;
-	localparam READ   = 4'd12;
-	localparam STACKPUSH= 4'd13;
-	localparam STACKPOP = 4'd14;
-	localparam STACKPUSH2= 4'd15;
-	reg [3:0] state = START;
+	// state definitions
+	localparam START     = 5'd0;
+	localparam FETCH     = 5'd1;
+	localparam DECODE    = 5'd2;
+	localparam OPLOAD    = 5'd3;
+	localparam ECHO      = 5'd4;
+	localparam ECHO1     = 5'd5;
+	localparam WAIT      = 5'd6;
+	localparam WAIT2     = 5'd7;
+	localparam OPLOAD2   = 5'd8;
+	localparam DECODE2   = 5'd9;
+	localparam WAIT3     = 5'd10;
+	localparam MEMLOAD   = 5'd11;
+	localparam READ      = 5'd12;
+	localparam STACKPUSH = 5'd13;
+	localparam STACKPUSH2= 5'd14;
+	localparam CALL1     = 5'd15;
+	localparam CALL2     = 5'd16;
+	localparam CALL3     = 5'd17;
+	localparam CALL4     = 5'd18;
+	localparam CALL5     = 5'd19;
+	reg [4:0] state = START;
 
 	always @(posedge clk)
 	begin
@@ -184,6 +189,12 @@ module cpu(
 													dwrite <= A;
 													state <= FETCH;
 												end
+									2'h3	:	begin	// CALL <longmem>
+														c_waddr <= sp;
+														write_en <= 1;
+														dwrite <= {{(16-addr_width){1'b0}},pc[addr_width-1:8]};
+														state <= CALL1;
+												end
 									default	:	state <= FETCH; // ignore all undefined 2 byte longmem opcodes
 								endcase
 							end
@@ -201,6 +212,23 @@ module cpu(
 			STACKPUSH:	state <= STACKPUSH2;
 			STACKPUSH2:	begin
 							sp <= sp - 1;
+							state <= FETCH;
+						end
+			CALL1	:	state <= CALL2;
+			CALL2	:	begin
+							sp <= sp - 1;
+							state <= CALL3;
+						end 
+			CALL3	:	state <= CALL4;
+			CALL4	:	begin
+							c_waddr <= sp;
+							write_en <= 1;
+							dwrite <= pc[7:0];
+							state <= CALL5;
+						end
+			CALL5	:	begin
+							sp <= sp - 1 ;
+							pc <= {opcode[addr_width-8:0], operand};
 							state <= FETCH;
 						end
 			ECHO	:	begin
