@@ -4,8 +4,8 @@ module cpu(
 	input rst,
 	input clk,
 	input [7:0] dread, // from ram
-	output reg [8:0] c_raddr,
-	output reg [8:0] c_waddr,
+	output reg [addr_width-1:0] c_raddr,
+	output reg [addr_width-1:0] c_waddr,
 	output reg [7:0] dwrite, // to ram
 	output reg write_en,
 	output reg led,
@@ -13,18 +13,19 @@ module cpu(
 	output reg transmit, 
 	input is_transmitting,
 	output reg halted,
-	input [8:0] startaddr,
+	input [addr_width-1:0] startaddr,
 	input received,
 	input [7:0] rx_byte
 	);
+	parameter addr_width = 9;
 
-	reg [8:0] pc;
+	reg [addr_width-1:0] pc;
 	reg [7:0] opcode, operand, outbyte;
 	reg [7:0] A,B,C;
 	reg [1:0] flags;
 	wire [7:0] result;
 	wire c_out, zero;
-	wire [8:0] jmpaddress, jmpaddressc, jmpaddressz;
+	wire [addr_width-1:0] jmpaddress, jmpaddressc, jmpaddressz;
 	wire branchcondition;
 
 	alu alu0(
@@ -37,7 +38,7 @@ module cpu(
 		.zero(zero)
 		);
 
-	branchlogic branchlogic0(pc, operand, flags, jmpaddress, jmpaddressc, jmpaddressz);
+	branchlogic #(.addr_width(addr_width)) branchlogic0(pc, operand, flags, jmpaddress, jmpaddressc, jmpaddressz);
 
 	wire hlt = opcode == 8'h00;
 	wire one = opcode[7] == 0;

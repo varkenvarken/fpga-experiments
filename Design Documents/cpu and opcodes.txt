@@ -1,4 +1,4 @@
-cpu/opcode design
+cpu/opcode design test cases
 
 see spreadsheet 'opcodes puck'
 
@@ -40,13 +40,13 @@ HLT			00
 CLF			03
 LDA #f0		80 f0
 LDB #f0		81 f0
-ADD			04
+ADD			71
 OUTA		01
 LDA #0		80 00
 LDB #0		81 00
-ADD			04
+ADD			71
 OUTA		01
 HLT			00
 --------
-00004e0380f081f0040180008100040100	output: e0 01
+00004e0380f081f0710180008100710100	output: e0 01
 

@@ -17,6 +17,7 @@
 `include "cores/osdvu/uart.v"
 `include "ram.v"
 `include "cpu.v"
+`define ADDR_WIDTH 10
 
 module top(
 	input iCE_CLK,
@@ -41,12 +42,12 @@ module top(
 	wire [7:0] r_din;
 	wire [7:0] r_dout;
 	wire r_write_en; 
-	wire [8:0] r_waddr,r_raddr;
+	wire [`ADDR_WIDTH-1:0] r_waddr,r_raddr;
 
 	// cpu wires
 	wire c_reset, c_write_en, c_led, c_transmit, c_halted;
 	wire [7:0] c_dwrite, c_tx_byte;
-	wire [8:0] c_raddr, c_waddr, c_startaddr;
+	wire [`ADDR_WIDTH-1:0] c_raddr, c_waddr, c_startaddr;
 
 	// monitor wires and registers
 	reg monitor_control = 1;
@@ -62,7 +63,7 @@ module top(
 	// access to ram
 	reg [7:0] m_din;
 	reg m_write_en;
-	reg [8:0] m_waddr,m_raddr;
+	reg [`ADDR_WIDTH-1:0] m_waddr,m_raddr;
 
 	// access to cpu
 	reg m_c_reset = 0;
@@ -87,7 +88,7 @@ module top(
 	);
 
 	// ram instantiation
-	ram ram0(
+	ram #(.addr_width(`ADDR_WIDTH)) ram0(
 		.din(r_din), 
 		.write_en(r_write_en), 
 		.waddr(r_waddr), 
@@ -98,7 +99,7 @@ module top(
 	);
 
 	// cpu instantiation
-	cpu cpu0(
+	cpu #(.addr_width(`ADDR_WIDTH)) cpu0(
 		.rst(c_reset),
 		.clk(iCE_CLK),
 		.dread(r_dout), // from ram to cpu
@@ -133,7 +134,7 @@ module top(
 
 	// cpu reset tied to register
 	assign c_reset = m_c_reset;
-	assign c_startaddr = m_addr[8:0];
+	assign c_startaddr = m_addr[`ADDR_WIDTH-1:0];
 	
 	// monitor program state machine
 	reg [3:0] m_state = 0;

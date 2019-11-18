@@ -40,5 +40,9 @@ TODO
 
 - create tiny assembler in Python
 	puck.py filename.pck > filename.asm
-	
-	
+
+- upgrade clock speed to  100 MHz (with PLL and Golbal buffer)
+
+- if possible: make RAM access faster (read/write on negedge , should reduce wait states)
+
+- if hardware budget allows: cycle timer and monitor function to dump it for exact timing purposes
