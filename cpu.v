@@ -70,6 +70,11 @@ module cpu(
 	localparam CALL3     = 5'd17;
 	localparam CALL4     = 5'd18;
 	localparam CALL5     = 5'd19;
+	localparam RETURN1   = 5'd20;
+	localparam RETURN2   = 5'd21;
+	localparam RETURN3   = 5'd22;
+	localparam RETURN4   = 5'd23;
+	localparam RETURN5   = 5'd24;
 	reg [4:0] state = START;
 
 	always @(posedge clk)
@@ -123,6 +128,11 @@ module cpu(
 														sp <= sp + 1;
 														c_raddr <= sp + 1;
 														state <= WAIT3;
+													end
+										4'h0	:	begin			// RET
+														sp <= sp + 1;
+														c_raddr <= sp + 1;
+														state <= RETURN1;
 													end
 										default	:	state <= FETCH; // ignore all undefined 1 byte opcodes
 												endcase
@@ -231,6 +241,19 @@ module cpu(
 							pc <= {opcode[addr_width-8:0], operand};
 							state <= FETCH;
 						end
+			RETURN1	:	state <= RETURN2;
+			RETURN2	:	begin
+							pc[7:0] <= dread;
+							c_raddr <= sp + 1;
+							sp <= sp + 1;
+							state <= RETURN3;
+						end
+			RETURN3	:	state <= RETURN4;
+			RETURN4	:	begin
+							pc[addr_width-1:8] <= dread[addr_width-9:0];
+							state <= RETURN5;
+						end
+			RETURN5	:	state <= FETCH;
 			ECHO	:	begin
 							outbyte <= A;
 							state <= ECHO1;
