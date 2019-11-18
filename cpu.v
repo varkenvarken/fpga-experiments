@@ -106,19 +106,19 @@ module cpu(
 										default	:	state <= FETCH; // ignore all undefined 1 byte opcodes  NOTE!!! w.o. this default state stays DECODE and we have an issue then
 												endcase
 									3'h1	:	case (opcode[3:0])	// stack
-										4'h8	:	begin			// PUSHA
+										4'h8,
+										4'h9	:	begin			// PUSHA, PUSHB
 														c_waddr <= sp;
 														write_en <= 1;
-														dwrite <= A;
+														dwrite <= register == 0 ? A : B;
 														state <= STACKPUSH;
 													end
-										//4'h9	:
-										4'hc	:	begin			// POPA
+										4'hc, 
+										4'hd	:	begin			// POPA, POPB, plus room if we add C and/or D
 														sp <= sp + 1;
 														c_raddr <= sp + 1;
 														state <= WAIT3;
 													end
-										//4'hd	: 
 										default	:	state <= FETCH; // ignore all undefined 1 byte opcodes
 												endcase
 									3'h7	:	begin				// ALU 
@@ -150,14 +150,16 @@ module cpu(
 													B <= operand;
 													state <= FETCH;
 												end
-									5'h04	:	begin	// LDA <mem>
+									5'h04,
+									5'h05	:	begin	// LDA <mem> LDB <mem>
 													c_raddr <= operand; // apparently automatically extended to width of c_raddr
 													state <= WAIT3;
 												end
-									5'h08	:	begin	// STA <mem> (no extra wait cycle because we can write and read at the same time)
+									5'h08,
+									5'h09	:	begin	// STA <mem> STB <mem> (no extra wait cycle because we can write and read at the same time)
 													c_waddr <= operand;
 													write_en <= 1;
-													dwrite <= A;
+													dwrite <= register == 0 ? A : B;
 													state <= FETCH;
 												end
 									5'h10	:	begin   // BRA <offset>
@@ -188,8 +190,13 @@ module cpu(
 						end
 			WAIT3	:	state <= MEMLOAD;
 			MEMLOAD	:	begin
-							A <= dread;
-							state <= FETCH;
+							if (opcode[7:5] == 3'b110) begin // LDA <longmem>
+								A <= dread; state <= FETCH;
+							end else case (register)
+								2'h0	: 	begin A <= dread; state <= FETCH; end
+								2'h1	: 	begin B <= dread; state <= FETCH; end
+								default		state <= FETCH; // ignore unknown register
+							endcase
 						end
 			STACKPUSH:	state <= STACKPUSH2;
 			STACKPUSH2:	begin
