@@ -9,8 +9,9 @@ module alu(
 	);
 
 	// TODO: overflow/underflow
-	wire [8:0] add,adc,sub,sbc,extend,min_a,result;
+	wire [8:0] add,adc,sub,sbc,extend,min_a,result, shiftl, shiftr;
 	wire [7:0] b_and,b_or,b_xor,b_not, cmp;
+
 	assign add = {0, a} + {0, b};
 	assign adc = add + { 8'd0, carry};
 	assign sub = {0, a} - {0, b};
@@ -21,14 +22,18 @@ module alu(
 	assign b_not = {0,~a    };
 	assign extend = {a[7],a};
 	assign min_a = -extend;
-	assign cmp = sub[8] ? 9'h1ff : sub == 0 ? 0 : 1; 
+	assign cmp = sub[8] ? 9'h1ff : sub == 0 ? 0 : 1;
+	assign shiftl = {a[7:0],1'b0};
+	assign shiftr = {a[0],1'b0,a[7:1]};
+
 	assign result = op[3:2] == 0 ? // addition/subtraction
 									( op[1] ? ( op[0] ? sbc : sub ): ( op[0] ? adc : add ) )
-				:	op[3:2] == 1 ? // bitwise logic
+				:(	op[3:2] == 1 ? // bitwise logic
 									( op[1] ? ( op[0] ? b_xor : b_not ): ( op[0] ? b_and : b_or ) )
-				:	op[3:2] == 2 ? // test, invert, compare
+				:(	op[3:2] == 2 ? // test, invert, compare
 									( op[1] ? ( op[0] ? cmp : min_a ): ( op[0] ? {0, b} : {0, a} ) )
-				: {0, a} ; // all undefined opcodes simply pass A thru
+								   // shifts
+				: 					( op[1] ? ( op[0] ? {0, a} : {0, a} ): ( op[0] ? shiftr : shiftl ) ) ) );
 	assign c = result[7:0];
 	assign carry_out = result[8];
 	assign zero = (c == 0);
