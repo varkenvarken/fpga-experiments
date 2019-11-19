@@ -21,6 +21,8 @@ module cpu(
 
 	reg [addr_width-1:0] pc;
 	reg [addr_width-1:0] sp; // stack pointer (could be reduced to 8 bits to save space); will be initialized to the last address
+	reg [addr_width-1:0] base0;
+	reg [addr_width-1:0] base1;
 	reg [7:0] opcode, operand, outbyte;
 	reg [7:0] A,B,C,D;
 	reg [1:0] flags;
@@ -76,6 +78,8 @@ module cpu(
 	localparam RETURN3   = 5'd22;
 	localparam RETURN4   = 5'd23;
 	localparam RETURN5   = 5'd24;
+	localparam WAITBASER = 5'd25;
+	localparam WAITBASER1= 5'd26;
 	reg [4:0] state = START;
 
 	always @(posedge clk)
@@ -146,6 +150,19 @@ module cpu(
 													4'b1100	: begin A <= D; state <= FETCH; end
 													default : state <= FETCH;
 												endcase
+									3'h3	:	case(alucode)	// base register LD/ST
+													4'b0000	: begin // LDA (base0 + C)
+																c_raddr <= base0 + C;
+																state <= WAITBASER;
+															  end
+													4'b1010	: begin // STA (base1 + D)
+																c_waddr <= base1 + D;
+																write_en <= 1;
+																dwrite <= A;
+																state <= FETCH;
+															  end
+													default : state <= FETCH;
+												endcase
 									3'h7	:	begin				// ALU 
 													A <= result;
 													flags[0] <= zero;
@@ -211,14 +228,12 @@ module cpu(
 								endcase
 							end else begin // long address opcodes
 								case (opcode[6:5])
-									2'h2	:	begin	// LDA <longmem>
-													c_raddr <= {opcode[addr_width-8:0], operand};
-													state <= WAIT3;
+									2'h1	:	begin	// LDBASE0
+													base0 <= {opcode[addr_width-8:0], operand};
+													state <= FETCH;
 												end
-									2'h1	:	begin	// STA <longmem>
-													c_waddr <= {opcode[addr_width-8:0], operand};
-													write_en <= 1;
-													dwrite <= A;
+									2'h2	:	begin	// LDBASE1
+													base1 <= {opcode[addr_width-8:0], operand};
 													state <= FETCH;
 												end
 									2'h3	:	begin	// CALL <longmem>
@@ -233,9 +248,7 @@ module cpu(
 						end
 			WAIT3	:	state <= MEMLOAD;
 			MEMLOAD	:	begin
-							if (opcode[7:5] == 3'b110) begin // LDA <longmem>
-								A <= dread; state <= FETCH;
-							end else case (register)
+							case (register)
 								2'h0	: 	begin A <= dread; state <= FETCH; end
 								2'h1	: 	begin B <= dread; state <= FETCH; end
 								2'h2	: 	begin C <= dread; state <= FETCH; end
@@ -243,6 +256,8 @@ module cpu(
 								default		state <= FETCH; // ignore unknown register
 							endcase
 						end
+			WAITBASER:	state <= WAITBASER1;
+			WAITBASER1:	begin A <= dread; state <= FETCH; end
 			STACKPUSH:	state <= STACKPUSH2;
 			STACKPUSH2:	begin
 							sp <= sp - 1;
