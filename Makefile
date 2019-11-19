@@ -7,6 +7,7 @@ TOP = puck.v
 PCF = icestick.pcf
 DEVICE = --hx1k
 PACKAGE= tq144
+PLACER=heap
 
 OUTPUT = $(patsubst %.v,%.bin,$(TOP))
 
@@ -16,7 +17,7 @@ all: $(OUTPUT)
 	$(GEN) $< $@
 
 %.asc: %.json
-	$(PNR) $(DEVICE)  --package $(PACKAGE) --json $< --pcf $(PCF) --asc $@
+	$(PNR) $(DEVICE) --placer $(PLACER) --package $(PACKAGE) --json $< --pcf $(PCF) --asc $@
 
 %.json: $(TOP) ram.v cpu.v alu.v branchlogic.v
 	$(SYN) -q -p "read_verilog $<; hierarchy -libdir . ; synth_ice40 -flatten -json $@"
