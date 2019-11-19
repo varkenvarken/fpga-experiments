@@ -1,27 +1,28 @@
 SYN = yosys
-PNR = arachne-pnr
+PNR = nextpnr-ice40
 GEN = icepack
 PROG = iceprog 
 
 TOP = puck.v
 PCF = icestick.pcf
-DEVICE = 1k
+DEVICE = --hx1k
+PACKAGE= tq144
 
 OUTPUT = $(patsubst %.v,%.bin,$(TOP))
 
 all: $(OUTPUT)
 
-%.bin: %.tiles
+%.bin: %.asc
 	$(GEN) $< $@
 
-%.tiles: %.blif
-	$(PNR) -d $(DEVICE) -p $(PCF) -o $@ $<
+%.asc: %.json
+	$(PNR) $(DEVICE)  --package $(PACKAGE) --json $< --pcf $(PCF) --asc $@
 
-%.blif: $(TOP) ram.v cpu.v alu.v branchlogic.v
-	$(SYN) -q -p "read_verilog $<; hierarchy -libdir . ; synth_ice40 -flatten -blif $@"
+%.json: $(TOP) ram.v cpu.v alu.v branchlogic.v
+	$(SYN) -q -p "read_verilog $<; hierarchy -libdir . ; synth_ice40 -flatten -json $@"
 
 clean:
-	rm -f *.bin *.blif *.tiles
+	rm -f *.bin *.blif *.tiles *.asc *.json
 
 flash: $(OUTPUT)
 	$(PROG) $<
