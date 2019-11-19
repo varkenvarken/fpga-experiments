@@ -22,7 +22,7 @@ module cpu(
 	reg [addr_width-1:0] pc;
 	reg [addr_width-1:0] sp; // stack pointer (could be reduced to 8 bits to save space); will be initialized to the last address
 	reg [7:0] opcode, operand, outbyte;
-	reg [7:0] A,B,C;
+	reg [7:0] A,B,C,D;
 	reg [1:0] flags;
 	wire [7:0] result;
 	wire c_out, zero;
@@ -30,7 +30,8 @@ module cpu(
 	wire branchcondition;
 	wire [3:0] alucode;
 	wire [1:0] register;
-	
+	wire [7:0] register_select;
+
 	assign alucode = opcode[3:0];
 	assign register= opcode[1:0];
 
@@ -136,6 +137,15 @@ module cpu(
 													end
 										default	:	state <= FETCH; // ignore all undefined 1 byte opcodes
 												endcase
+									3'h2	:	case(alucode)	// moves
+													4'b0001	: begin B <= A; state <= FETCH; end
+													4'b0010	: begin C <= A; state <= FETCH; end
+													4'b0011	: begin D <= A; state <= FETCH; end
+													4'b0100	: begin A <= B; state <= FETCH; end
+													4'b1000	: begin A <= C; state <= FETCH; end
+													4'b1100	: begin A <= D; state <= FETCH; end
+													default : state <= FETCH;
+												endcase
 									3'h7	:	begin				// ALU 
 													A <= result;
 													flags[0] <= zero;
@@ -165,16 +175,28 @@ module cpu(
 													B <= operand;
 													state <= FETCH;
 												end
+									5'h02	:	begin	// LDC immediate
+													C <= operand;
+													state <= FETCH;
+												end
+									5'h03	:	begin	// LDD immediate
+													D <= operand;
+													state <= FETCH;
+												end
 									5'h04,
-									5'h05	:	begin	// LDA <mem> LDB <mem>
+									5'h05,
+									5'h06,
+									5'h07	:	begin	// LDA <mem> LDB <mem>
 													c_raddr <= operand; // apparently automatically extended to width of c_raddr
 													state <= WAIT3;
 												end
 									5'h08,
-									5'h09	:	begin	// STA <mem> STB <mem> (no extra wait cycle because we can write and read at the same time)
+									5'h09,
+									5'h0a,
+									5'h0b	:	begin	// STA <mem> STB <mem> (no extra wait cycle because we can write and read at the same time)
 													c_waddr <= operand;
 													write_en <= 1;
-													dwrite <= register == 0 ? A : B;
+													dwrite <= register == 0 ? A : ( register == 1 ? B : (register == 2 ? C : D));
 													state <= FETCH;
 												end
 									5'h10	:	begin   // BRA <offset>
@@ -216,6 +238,8 @@ module cpu(
 							end else case (register)
 								2'h0	: 	begin A <= dread; state <= FETCH; end
 								2'h1	: 	begin B <= dread; state <= FETCH; end
+								2'h2	: 	begin C <= dread; state <= FETCH; end
+								2'h3	: 	begin D <= dread; state <= FETCH; end
 								default		state <= FETCH; // ignore unknown register
 							endcase
 						end
