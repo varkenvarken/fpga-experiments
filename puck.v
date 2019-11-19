@@ -17,7 +17,7 @@
 `include "cores/osdvu/uart.v"
 `include "ram.v"
 `include "cpu.v"
-`define ADDR_WIDTH 10
+`define ADDR_WIDTH 12	// 4K ram. 8K won't fit the icestick (ram is available but register width etc eats up space: we use 104% of available LCs)
 
 module top(
 	input iCE_CLK,
@@ -192,7 +192,7 @@ module top(
 									m_raddr = m_addr[`ADDR_WIDTH-1:0];
 									m_state <= DUMP1;
 								end else
-									m_state <= START;
+									m_state <= START; 
 					DUMP1	:	if(!u_is_transmitting) begin
 									m_addr[`ADDR_WIDTH-1:0] = m_addr[`ADDR_WIDTH-1:0] + 1;
 									m_tx_byte = r_dout;
