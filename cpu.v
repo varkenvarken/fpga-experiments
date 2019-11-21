@@ -94,7 +94,7 @@ module cpu(
 		transmit <= 0;
 		halted <= 0;
 
-		if(state)	state <= next_state;
+		if(state)	state <= next_state;  // this statement is crucial as apparently the first couple of cycles sbram can output anything ...
 		case(state)
 			START	:	if(rst) begin 
 							pc <= startaddr;
@@ -104,13 +104,10 @@ module cpu(
 						end
 			FETCH	:	begin
 							c_raddr <= pc; 
-							//state <= WAIT; // wait state is needed because ram is read on next cycle so dat will be available on next cycle + 1
 						end
-			//WAIT	:	state <= next_state; //state <= OPLOAD;
 			OPLOAD	:	begin
 							opcode <= dread;
 							pc <= pc + 1;
-							//state <= DECODE;
 						end
 			DECODE	:	begin
 							c_raddr <= pc;
@@ -147,7 +144,7 @@ module cpu(
 													end
 										default	:	state <= FETCH; // ignore all undefined 1 byte opcodes
 												endcase
-									3'h2	:	case(alucode)	// moves
+									3'h2	:	case(alucode)	// moves, only the ones that apply to the A register are implemented
 													4'b0001	: begin B <= A; state <= FETCH; end
 													4'b0010	: begin C <= A; state <= FETCH; end
 													4'b0011	: begin D <= A; state <= FETCH; end
@@ -181,11 +178,10 @@ module cpu(
 								state <= WAIT2;
 							end
 						end
-			WAIT2	:	state <= next_state;//state <= OPLOAD2;
+			WAIT2	:	state <= next_state;
 			OPLOAD2	:	begin
 							operand <= dread;
 							pc <= pc + 1;
-							//state <= DECODE2;
 						end
 			DECODE2	:	begin
 							if (opcode[6:5] == 0) begin // regular opcodes
@@ -252,60 +248,43 @@ module cpu(
 								endcase
 							end
 						end
-			//WAIT3	:	state <= next_state;//state <= MEMLOAD;
 			MEMLOAD	:	begin
 							case (register)
-								2'h0	: 	begin A <= dread; end //state <= FETCH; end
-								2'h1	: 	begin B <= dread; end //state <= FETCH; end
-								2'h2	: 	begin C <= dread; end //state <= FETCH; end
-								2'h3	: 	begin D <= dread; end //state <= FETCH; end
-								// default		state <= FETCH; // ignore unknown register
+								2'h0	: 	begin A <= dread; end
+								2'h1	: 	begin B <= dread; end
+								2'h2	: 	begin C <= dread; end
+								2'h3	: 	begin D <= dread; end
 							endcase
-						//	state <= next_state;
 						end
-			//WAITBASER:	state <= next_state;//state <= WAITBASER1;
 			WAITBASER1:	begin 
 							A <= dread;
-							//state <= next_state;//state <= FETCH;
 						end
-			//STACKPUSH:	state <= next_state;//state <= STACKPUSH2;
 			STACKPUSH2:	begin
 							sp <= sp - 1;
-							//state <= next_state;//state <= FETCH;
 						end
-			//CALL1	:	state <= next_state;//state <= CALL2;
 			CALL2	:	begin
 							sp <= sp - 1;
-							//state <= next_state;//state <= CALL3;
 						end 
-			//CALL3	:	state <= next_state;//state <= CALL4;
 			CALL4	:	begin
 							c_waddr <= sp;
 							write_en <= 1;
 							dwrite <= pc[7:0];
-							//state <= next_state;//state <= CALL5;
 						end
 			CALL5	:	begin
 							sp <= sp - 1 ;
 							pc <= {opcode[addr_width-8:0], operand};
-							//state <= next_state;//state <= FETCH;
 						end
-			//RETURN1	:	state <= next_state;//state <= RETURN2;
 			RETURN2	:	begin
 							pc[7:0] <= dread;
 							c_raddr <= sp + 1;
 							sp <= sp + 1;
-							state <= next_state;//state <= RETURN3;
+							state <= next_state;
 						end
-			//RETURN3	:	state <= next_state;//state <= RETURN4;
 			RETURN4	:	begin
 							pc[addr_width-1:8] <= dread[addr_width-9:0];
-							//state <= next_state;//state <= RETURN5;
 						end
-			//RETURN5	:	state <= next_state;//state <= FETCH;
 			ECHO	:	begin
 							outbyte <= A;
-							//state <= next_state;//state <= ECHO1;
 						end
 			ECHO1	:	begin
 							if(!is_transmitting) begin
