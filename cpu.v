@@ -58,7 +58,7 @@ module cpu(
 	localparam FETCH     = 5'd1; // next state is always WAIT
 	localparam DECODE    = 5'd2; // next is FETCH unless overruled
 	localparam OPLOAD    = 5'd3; // next state is always DECODE
-	localparam ECHO      = 5'd4; // next state is always ECHO1
+	localparam ECHO      = 5'd4; // OBSOLETE next state is always ECHO1
 	localparam ECHO1     = 5'd5; // next is ECHO1 unless overruled
 	localparam WAIT      = 5'd6; // next state is always OPLOAD
 	localparam WAIT2     = 5'd7; // next state is always OPLOAD2
@@ -306,7 +306,7 @@ module cpu(
 							pc[7:0] <= dread;
 							c_raddr <= sp + 1;
 							sp <= sp + 1;
-							state <= next_state;
+							state <= next_state;  // eliminating this line *increases* LC count
 						end
 			RETURN4	:	begin
 							pc[addr_width-1:8] <= dread[addr_width-9:0];

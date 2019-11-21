@@ -9,7 +9,7 @@ module alu(
 	);
 
 	// TODO: overflow/underflow
-	wire [8:0] add,adc,sub,sbc,extend,min_a,result, shiftl, shiftr;
+	wire [8:0] add,adc,sub,sbc,extend,min_a,result, shiftl, shiftr, shiftlc, shiftrc;
 	wire [7:0] b_and,b_or,b_xor,b_not, cmp;
 
 	assign add = {0, a} + {0, b};
@@ -25,6 +25,8 @@ module alu(
 	assign cmp = sub[8] ? 9'h1ff : sub == 0 ? 0 : 1;
 	assign shiftl = {a[7:0],1'b0};
 	assign shiftr = {a[0],1'b0,a[7:1]};
+	assign shiftlc = {a[7:0],carry};
+	assign shiftrc = {a[0],carry,a[7:1]};
 
 	assign result = op[3:2] == 0 ? // addition/subtraction
 									( op[1] ? ( op[0] ? sbc : sub ): ( op[0] ? adc : add ) )
@@ -33,7 +35,7 @@ module alu(
 				:(	op[3:2] == 2 ? // test, invert, compare
 									( op[1] ? ( op[0] ? cmp : min_a ): ( op[0] ? {0, b} : {0, a} ) )
 								   // shifts
-				: 					( op[1] ? ( op[0] ? {0, a} : {0, a} ): ( op[0] ? shiftr : shiftl ) ) ) );
+				: 					( op[1] ? ( op[0] ? shiftrc : shiftlc ): ( op[0] ? shiftr : shiftl ) ) ) );
 	assign c = result[7:0];
 	assign carry_out = result[8];
 	assign zero = (c == 0);
