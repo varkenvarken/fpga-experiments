@@ -154,24 +154,38 @@ module cpu(
 										default	:	state <= FETCH; // ignore all undefined 1 byte opcodes
 												endcase
 									3'h2	:	case(alucode)	// moves, only the ones that apply to the A register are implemented
-													4'b0001	: begin B <= A; state <= FETCH; end
-													4'b0010	: begin C <= A; state <= FETCH; end
-													4'b0011	: begin D <= A; state <= FETCH; end
+													// note that including all the commented out stuff and removing the default to create a full case actual increases LC count with 25
+													//4'b0000,  // begin A <= A; state <= FETCH; end
 													4'b0100	: begin A <= B; state <= FETCH; end
 													4'b1000	: begin A <= C; state <= FETCH; end
 													4'b1100	: begin A <= D; state <= FETCH; end
+													4'b0001	: begin B <= A; state <= FETCH; end
+													//4'b0101,  //begin B <= B; state <= FETCH; end
+													//4'b1001,  //begin B <= C; state <= FETCH; end
+													//4'b1101,  //begin B <= D; state <= FETCH; end
+													4'b0010	: begin C <= A; state <= FETCH; end
+													//4'b0110,  // begin C <= B; state <= FETCH; end
+													//4'b1010,  // begin C <= C; state <= FETCH; end
+													//4'b1110,  // begin C <= D; state <= FETCH; end
+													//4'b0111,  // begin D <= B; state <= FETCH; end
+													//4'b1011,  // begin D <= C; state <= FETCH; end
+													//4'b1111,  // begin D <= D; state <= FETCH; end
+													4'b0011	: begin D <= A; state <= FETCH; end
 													default : state <= FETCH;
 												endcase
 									3'h3	:	case(alucode)	// base register LD/ST
-													4'b0000	: begin // LDA (base0 + C)
+													4'b0000,
+													4'b0010	: begin // LDA (base0 + C)
 																c_raddr <= base0 + C;
 																state <= WAITBASER;
 															  end
+													4'b1001,
 													4'b1011	: begin // STA (base1 + D)
 																c_waddr <= base1 + D;
 																write_en <= 1;
 																dwrite <= A;
 																state <= FETCH;
+																if(register==3)	D <= D + 1;
 															  end
 													default : state <= FETCH;
 												endcase
@@ -265,6 +279,7 @@ module cpu(
 								2'h3	: 	begin D <= dread; end
 							endcase
 						end
+			WAITBASER:	if(register == 2)	C <= C + 1;
 			WAITBASER1:	begin 
 							A <= dread;
 						end
