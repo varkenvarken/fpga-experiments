@@ -24,7 +24,7 @@ module cpu(
 	reg [addr_width-1:0] sp; // stack pointer (could be reduced to 8 bits to save space); will be initialized to the last address
 	reg [addr_width-1:0] base0;
 	reg [addr_width-1:0] base1;
-	reg [7:0] opcode, operand, outbyte;
+	reg [7:0] opcode, operand; //, outbyte;
 	reg [7:0] A,B,C,D;
 	reg [1:0] flags;
 	wire [7:0] result;
@@ -249,6 +249,10 @@ module cpu(
 													pc <= jmpaddressz;
 													state <= FETCH;
 												end
+									 5'h12	:	begin   // BRC <offset>
+													pc <= jmpaddressc;
+													state <= FETCH;
+												end
 									default	:	state <= FETCH; // ignore all undefined 2 byte opcodes
 								endcase
 							end else begin // long address opcodes
@@ -307,12 +311,12 @@ module cpu(
 			RETURN4	:	begin
 							pc[addr_width-1:8] <= dread[addr_width-9:0];
 						end
-			ECHO	:	begin
-							outbyte <= A;
-						end
+			//ECHO	:	begin
+			//				outbyte <= A;
+			//			end
 			ECHO1	:	begin
 							if(!is_transmitting) begin
-								tx_byte <= outbyte;
+								tx_byte <= A;
 								transmit <= 1;
 								state <= FETCH;
 							end
