@@ -17,6 +17,7 @@
 `include "cores/osdvu/uart.v"
 `include "ram.v"
 `include "cpu.v"
+
 `define ADDR_WIDTH 12	// 4K ram. 8K won't fit the icestick (ram is available but register width etc eats up space: we use 104% of available LCs)
 
 module top(
@@ -135,7 +136,12 @@ module top(
 	// cpu reset tied to register
 	assign c_reset = m_c_reset;
 	assign c_startaddr = m_addr[`ADDR_WIDTH-1:0];
-	
+
+	// normally part of cpu. here for testing purposes
+	//wire [4:0] rom_raddr, rom_data;
+	//rom32x4 rom(rom_raddr, iCE_CLK, rom_data);
+	//assign rom_raddr = m_addr[4:0];
+
 	// monitor program state machine
 	reg [3:0] m_state = 0;
 
@@ -148,6 +154,7 @@ module top(
 	localparam DUMP		= 4'd6;
 	localparam DUMP1	= 4'd7;
 	localparam RUNSTART	= 4'd8;
+	localparam DUMPROM	= 4'd9;
 
 	localparam DOLOAD  = 2'd1;
 	localparam DODUMP  = 2'd2;
@@ -170,6 +177,7 @@ module top(
 									DOLOAD	:	begin m_len[7:6] <= 2'd0; m_state <= LOAD; end // e.g. h42 load 2 bytes
 									DODUMP	:	begin m_len[7:6] <= 2'd0; m_state <= DUMP; end // e.g. h82 dump 2 bytes
 									DOEXEC	:	begin m_c_reset <= 1; m_state <= RUNSTART; monitor_control <= 0; end // e.g. hc0 start cpu
+									//DOEXEC	:	begin m_state <= DUMPROM; end // e.g. 0001c0
 								endcase
 					LOAD	:	if(u_received) begin
 									if(m_len) begin
@@ -199,6 +207,13 @@ module top(
 									m_transmit <= 1;
 									m_state <= DUMP; // single wait cycle between transmits
 								end
+					/* DUMPROM	:	if(!u_is_transmitting) begin
+									m_tx_byte = {3'b0, rom_data};
+									m_transmit <= 1;
+									m_state <= START;
+								end
+					*/
+					// default	:	m_state <= START; // adding this unnecessaru default consumes 24 LC 
 				endcase
 				{LED2, LED1, LED0} <= m_state;
 			end else begin

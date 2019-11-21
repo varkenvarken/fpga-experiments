@@ -1,15 +1,15 @@
 template = """
-module rom16x4 (
-	input [3:0] addr, 
+module rom32x4 (
+	input [4:0] addr, 
 	input clk,
-	output [3:0] data);
+	output [4:0] data);
 
     wire [7:0] rdata;
 	wire [15:0] RDATA;
 	wire RCLK;
 	wire [10:0] RADDR;
 
-	SB_RAM40_4K #(
+	SB_RAM40_4KNR #( // negative edge readclock so we can apply and addres on the positive edge and guarantee data is available on the next posedge
 		.WRITE_MODE(1), 
 		.READ_MODE(1),
     .INIT_0(256'h{init[0][0]:04x}{init[0][1]:04x}{init[0][2]:04x}{init[0][3]:04x}{init[0][4]:04x}{init[0][5]:04x}{init[0][6]:04x}{init[0][7]:04x}{init[0][8]:04x}{init[0][9]:04x}{init[0][10]:04x}{init[0][11]:04x}{init[0][12]:04x}{init[0][13]:04x}{init[0][14]:04x}{init[0][15]:04x}),
@@ -30,7 +30,7 @@ module rom16x4 (
     .INIT_F(256'h{init[15][0]:04x}{init[15][1]:04x}{init[15][2]:04x}{init[15][3]:04x}{init[15][4]:04x}{init[15][5]:04x}{init[15][6]:04x}{init[15][7]:04x}{init[15][8]:04x}{init[15][9]:04x}{init[15][10]:04x}{init[15][11]:04x}{init[15][12]:04x}{init[15][13]:04x}{init[15][14]:04x}{init[15][15]:04x})
 	) rom(
 		.RDATA(RDATA),
-		.RCLK(RCLK),
+		.RCLKN(RCLK), // negative edge readclock has an N appended
 		.RCLKE(1),
 		.RE(1),
 		.RADDR(RADDR),
@@ -43,8 +43,8 @@ module rom16x4 (
 	);
 
     assign rdata =  {{RDATA[14],RDATA[12],RDATA[10],RDATA[8],RDATA[6],RDATA[4],RDATA[2],RDATA[0]}};
-	assign data = rdata[3:0];
-	assign RADDR = {{7'b0, addr}};
+	assign data = rdata[4:0];
+	assign RADDR = {{6'b0, addr}};
 	assign RCLK = clk;
 
 endmodule
@@ -71,9 +71,66 @@ def genrom(data):
     
     return template.format(init = init)
 
-data = "00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f";
 
-data = [int(v, 16) for v in data.split()]
+START     = 0; # next is START unless overruled
+FETCH     = 1; # next state is always WAIT
+DECODE    = 2; # next is FETCH unless overruled
+OPLOAD    = 3; # next state is always DECODE
+ECHO      = 4; # next state is always ECHO1
+ECHO1     = 5; # next is ECHO1 unless overruled
+WAIT      = 6; # next state is always OPLOAD
+WAIT2     = 7; # next state is always OPLOAD2
+OPLOAD2   = 8; # next state is always DECODE2
+DECODE2   = 9; # next is FETCH unless overruled
+WAIT3     = 10; # next state is always MEMLOAD
+MEMLOAD   = 11; # next state is always FETCH
+READ      = 12; # next is READ unless overruled
+STACKPUSH = 13; # next state is always STACKPUSH2
+STACKPUSH2= 14; # next state is always FETCH
+CALL1     = 15; # next state is always CALL2
+CALL2     = 16; # next state is always CALL3
+CALL3     = 17; # next state is always CALL4
+CALL4     = 18; # next state is always CALL5
+CALL5     = 19; # next state is always FETCH
+RETURN1   = 20; # next state is always RETURN2
+RETURN2   = 21; # next state is always RETURN3
+RETURN3   = 22; # next state is always RETURN4
+RETURN4   = 23; # next state is always RETURN5
+RETURN5   = 24; # next state is always FETCH
+WAITBASER = 25; # next state is always WAITBASER1
+WAITBASER1= 26; # next state is always FETCH
+
+data = {
+    START     :START,
+    FETCH     :WAIT,
+    DECODE    :FETCH,
+    OPLOAD    :DECODE,
+    ECHO      :ECHO1,
+    ECHO1     :ECHO1,
+    WAIT      :OPLOAD,
+    WAIT2     :OPLOAD2,
+    OPLOAD2   :DECODE2,
+    DECODE2   :FETCH,
+    WAIT3     :MEMLOAD,
+    MEMLOAD   :FETCH,
+    READ      :READ,
+    STACKPUSH :STACKPUSH2,
+    STACKPUSH2:FETCH,
+    CALL1     :CALL2,
+    CALL2     :CALL3,
+    CALL3     :CALL4,
+    CALL4     :CALL5,
+    CALL5     :FETCH,
+    RETURN1   :RETURN2,
+    RETURN2   :RETURN3,
+    RETURN3   :RETURN4,
+    RETURN4   :RETURN5,
+    RETURN5   :FETCH,
+    WAITBASER :WAITBASER1,
+    WAITBASER1:FETCH
+    }
+    
+data = [data[k] for k in sorted(data)]
 
 nbytes = len(data)
 

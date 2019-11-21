@@ -1,19 +1,19 @@
 
-module rom16x4 (
-	input [3:0] addr, 
+module rom32x4 (
+	input [4:0] addr, 
 	input clk,
-	output [3:0] data);
+	output [4:0] data);
 
     wire [7:0] rdata;
 	wire [15:0] RDATA;
 	wire RCLK;
 	wire [10:0] RADDR;
 
-	SB_RAM40_4K #(
+	SB_RAM40_4KNR #( // negative edge readclock so we can apply and addres on the positive edge and guarantee data is available on the next posedge
 		.WRITE_MODE(1), 
 		.READ_MODE(1),
-    .INIT_0(256'h0055005400510050004500440041004000150014001100100005000400010000),
-    .INIT_1(256'h0000000000000000000000000000000000000000000000000000000000000000),
+    .INIT_0(256'h0100000100540050000100450001004100400005001100110004000100140000),
+    .INIT_1(256'h0000000000000000000000010144000101400115011401110001010501040101),
     .INIT_2(256'h0000000000000000000000000000000000000000000000000000000000000000),
     .INIT_3(256'h0000000000000000000000000000000000000000000000000000000000000000),
     .INIT_4(256'h0000000000000000000000000000000000000000000000000000000000000000),
@@ -30,7 +30,7 @@ module rom16x4 (
     .INIT_F(256'h0000000000000000000000000000000000000000000000000000000000000000)
 	) rom(
 		.RDATA(RDATA),
-		.RCLK(RCLK),
+		.RCLKN(RCLK), // negative edge readclock has an N appended
 		.RCLKE(1),
 		.RE(1),
 		.RADDR(RADDR),
@@ -43,8 +43,8 @@ module rom16x4 (
 	);
 
     assign rdata =  {RDATA[14],RDATA[12],RDATA[10],RDATA[8],RDATA[6],RDATA[4],RDATA[2],RDATA[0]};
-	assign data = rdata[3:0];
-	assign RADDR = {7'b0, addr};
+	assign data = rdata[4:0];
+	assign RADDR = {6'b0, addr};
 	assign RCLK = clk;
 
 endmodule

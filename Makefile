@@ -3,6 +3,8 @@ PNR = nextpnr-ice40
 GEN = icepack
 PROG = iceprog 
 
+ROMGEN = python3 rom.py
+
 TOP = puck.v
 PCF = icestick.pcf
 DEVICE = --hx1k
@@ -21,6 +23,9 @@ all: $(OUTPUT)
 
 %.json: $(TOP) ram.v cpu.v alu.v branchlogic.v rom.v
 	$(SYN) -q -p "read_verilog $<; hierarchy -libdir . ; synth_ice40 -flatten -json $@"
+
+rom.v: rom.py
+	$(ROMGEN) > $@
 
 clean:
 	rm -f *.bin *.blif *.tiles *.asc *.json

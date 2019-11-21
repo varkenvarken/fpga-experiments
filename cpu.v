@@ -1,4 +1,5 @@
 `include "alu.v"
+`include "rom.v"
 
 module cpu(
 	input rst,
@@ -53,34 +54,38 @@ module cpu(
 	wire one = opcode[7] == 0;
 
 	// state definitions
-	localparam START     = 5'd0;
-	localparam FETCH     = 5'd1;
-	localparam DECODE    = 5'd2;
-	localparam OPLOAD    = 5'd3;
-	localparam ECHO      = 5'd4;
-	localparam ECHO1     = 5'd5;
-	localparam WAIT      = 5'd6;
-	localparam WAIT2     = 5'd7;
-	localparam OPLOAD2   = 5'd8;
-	localparam DECODE2   = 5'd9;
-	localparam WAIT3     = 5'd10;
-	localparam MEMLOAD   = 5'd11;
-	localparam READ      = 5'd12;
-	localparam STACKPUSH = 5'd13;
-	localparam STACKPUSH2= 5'd14;
-	localparam CALL1     = 5'd15;
-	localparam CALL2     = 5'd16;
-	localparam CALL3     = 5'd17;
-	localparam CALL4     = 5'd18;
-	localparam CALL5     = 5'd19;
-	localparam RETURN1   = 5'd20;
-	localparam RETURN2   = 5'd21;
-	localparam RETURN3   = 5'd22;
-	localparam RETURN4   = 5'd23;
-	localparam RETURN5   = 5'd24;
-	localparam WAITBASER = 5'd25;
-	localparam WAITBASER1= 5'd26;
+	localparam START     = 5'd0; // next is START unless overruled
+	localparam FETCH     = 5'd1; // next state is always WAIT
+	localparam DECODE    = 5'd2; // next is FETCH unless overruled
+	localparam OPLOAD    = 5'd3; // next state is always DECODE
+	localparam ECHO      = 5'd4; // next state is always ECHO1
+	localparam ECHO1     = 5'd5; // next is ECHO1 unless overruled
+	localparam WAIT      = 5'd6; // next state is always OPLOAD
+	localparam WAIT2     = 5'd7; // next state is always OPLOAD2
+	localparam OPLOAD2   = 5'd8; // next state is always DECODE2
+	localparam DECODE2   = 5'd9; // next is FETCH unless overruled
+	localparam WAIT3     = 5'd10; // next state is always MEMLOAD
+	localparam MEMLOAD   = 5'd11; // next state is always FETCH
+	localparam READ      = 5'd12; // next is READ unless overruled
+	localparam STACKPUSH = 5'd13; // next state is always STACKPUSH2
+	localparam STACKPUSH2= 5'd14; // next state is always FETCH
+	localparam CALL1     = 5'd15; // next state is always CALL2
+	localparam CALL2     = 5'd16; // next state is always CALL3
+	localparam CALL3     = 5'd17; // next state is always CALL4
+	localparam CALL4     = 5'd18; // next state is always CALL5
+	localparam CALL5     = 5'd19; // next state is always FETCH
+	localparam RETURN1   = 5'd20; // next state is always RETURN2
+	localparam RETURN2   = 5'd21; // next state is always RETURN3
+	localparam RETURN3   = 5'd22; // next state is always RETURN4
+	localparam RETURN4   = 5'd23; // next state is always RETURN5
+	localparam RETURN5   = 5'd24; // next state is always FETCH
+	localparam WAITBASER = 5'd25; // next state is always WAITBASER1
+	localparam WAITBASER1= 5'd26; // next state is always FETCH
 	reg [4:0] state = START;
+
+	wire [4:0] rom_raddr, next_state;
+	rom32x4 rom(rom_raddr, clk, next_state);
+	assign rom_raddr = state;
 
 	always @(posedge clk)
 	begin
@@ -89,6 +94,7 @@ module cpu(
 		transmit <= 0;
 		halted <= 0;
 
+		if(state)	state <= next_state;
 		case(state)
 			START	:	if(rst) begin 
 							pc <= startaddr;
@@ -98,13 +104,13 @@ module cpu(
 						end
 			FETCH	:	begin
 							c_raddr <= pc; 
-							state <= WAIT; // wait state is needed because ram is read on next cycle so dat will be available on next cycle + 1
+							//state <= WAIT; // wait state is needed because ram is read on next cycle so dat will be available on next cycle + 1
 						end
-			WAIT	:	state <= OPLOAD;
+			//WAIT	:	state <= next_state; //state <= OPLOAD;
 			OPLOAD	:	begin
 							opcode <= dread;
 							pc <= pc + 1;
-							state <= DECODE;
+							//state <= DECODE;
 						end
 			DECODE	:	begin
 							c_raddr <= pc;
@@ -155,7 +161,7 @@ module cpu(
 																c_raddr <= base0 + C;
 																state <= WAITBASER;
 															  end
-													4'b1010	: begin // STA (base1 + D)
+													4'b1011	: begin // STA (base1 + D)
 																c_waddr <= base1 + D;
 																write_en <= 1;
 																dwrite <= A;
@@ -175,11 +181,11 @@ module cpu(
 								state <= WAIT2;
 							end
 						end
-			WAIT2	:	state <= OPLOAD2;
+			WAIT2	:	state <= next_state;//state <= OPLOAD2;
 			OPLOAD2	:	begin
 							operand <= dread;
 							pc <= pc + 1;
-							state <= DECODE2;
+							//state <= DECODE2;
 						end
 			DECODE2	:	begin
 							if (opcode[6:5] == 0) begin // regular opcodes
@@ -246,56 +252,60 @@ module cpu(
 								endcase
 							end
 						end
-			WAIT3	:	state <= MEMLOAD;
+			//WAIT3	:	state <= next_state;//state <= MEMLOAD;
 			MEMLOAD	:	begin
 							case (register)
-								2'h0	: 	begin A <= dread; state <= FETCH; end
-								2'h1	: 	begin B <= dread; state <= FETCH; end
-								2'h2	: 	begin C <= dread; state <= FETCH; end
-								2'h3	: 	begin D <= dread; state <= FETCH; end
-								default		state <= FETCH; // ignore unknown register
+								2'h0	: 	begin A <= dread; end //state <= FETCH; end
+								2'h1	: 	begin B <= dread; end //state <= FETCH; end
+								2'h2	: 	begin C <= dread; end //state <= FETCH; end
+								2'h3	: 	begin D <= dread; end //state <= FETCH; end
+								// default		state <= FETCH; // ignore unknown register
 							endcase
+						//	state <= next_state;
 						end
-			WAITBASER:	state <= WAITBASER1;
-			WAITBASER1:	begin A <= dread; state <= FETCH; end
-			STACKPUSH:	state <= STACKPUSH2;
+			//WAITBASER:	state <= next_state;//state <= WAITBASER1;
+			WAITBASER1:	begin 
+							A <= dread;
+							//state <= next_state;//state <= FETCH;
+						end
+			//STACKPUSH:	state <= next_state;//state <= STACKPUSH2;
 			STACKPUSH2:	begin
 							sp <= sp - 1;
-							state <= FETCH;
+							//state <= next_state;//state <= FETCH;
 						end
-			CALL1	:	state <= CALL2;
+			//CALL1	:	state <= next_state;//state <= CALL2;
 			CALL2	:	begin
 							sp <= sp - 1;
-							state <= CALL3;
+							//state <= next_state;//state <= CALL3;
 						end 
-			CALL3	:	state <= CALL4;
+			//CALL3	:	state <= next_state;//state <= CALL4;
 			CALL4	:	begin
 							c_waddr <= sp;
 							write_en <= 1;
 							dwrite <= pc[7:0];
-							state <= CALL5;
+							//state <= next_state;//state <= CALL5;
 						end
 			CALL5	:	begin
 							sp <= sp - 1 ;
 							pc <= {opcode[addr_width-8:0], operand};
-							state <= FETCH;
+							//state <= next_state;//state <= FETCH;
 						end
-			RETURN1	:	state <= RETURN2;
+			//RETURN1	:	state <= next_state;//state <= RETURN2;
 			RETURN2	:	begin
 							pc[7:0] <= dread;
 							c_raddr <= sp + 1;
 							sp <= sp + 1;
-							state <= RETURN3;
+							state <= next_state;//state <= RETURN3;
 						end
-			RETURN3	:	state <= RETURN4;
+			//RETURN3	:	state <= next_state;//state <= RETURN4;
 			RETURN4	:	begin
 							pc[addr_width-1:8] <= dread[addr_width-9:0];
-							state <= RETURN5;
+							//state <= next_state;//state <= RETURN5;
 						end
-			RETURN5	:	state <= FETCH;
+			//RETURN5	:	state <= next_state;//state <= FETCH;
 			ECHO	:	begin
 							outbyte <= A;
-							state <= ECHO1;
+							//state <= next_state;//state <= ECHO1;
 						end
 			ECHO1	:	begin
 							if(!is_transmitting) begin
