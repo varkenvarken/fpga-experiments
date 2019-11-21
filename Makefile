@@ -19,7 +19,7 @@ all: $(OUTPUT)
 %.asc: %.json
 	$(PNR) $(DEVICE) --placer $(PLACER) --package $(PACKAGE) --json $< --pcf $(PCF) --asc $@
 
-%.json: $(TOP) ram.v cpu.v alu.v branchlogic.v
+%.json: $(TOP) ram.v cpu.v alu.v branchlogic.v rom.v
 	$(SYN) -q -p "read_verilog $<; hierarchy -libdir . ; synth_ice40 -flatten -json $@"
 
 clean:
