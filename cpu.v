@@ -125,14 +125,23 @@ module cpu(
 												endcase
 									3'h1	:	case (opcode[3:0])	// stack
 										4'h8,
-										4'h9	:	begin			// PUSHA, PUSHB
+										4'h9,
+										4'ha,
+										4'hb	:	begin			// PUSHA, PUSHB, PUSHC, PUSHD
 														c_waddr <= sp;
 														write_en <= 1;
-														dwrite <= register == 0 ? A : B;
+														case (register)
+															2'b00	:	dwrite <= A;
+															2'b01	:	dwrite <= B;
+															2'b10	:	dwrite <= C;
+															2'b11	:	dwrite <= D;
+														endcase
 														state <= STACKPUSH;
 													end
 										4'hc, 
-										4'hd	:	begin			// POPA, POPB, plus room if we add C and/or D
+										4'hd,
+										4'he,
+										4'hf	:	begin			// POPA, POPB, POPC, POPD
 														sp <= sp + 1;
 														c_raddr <= sp + 1;
 														state <= WAIT3;
