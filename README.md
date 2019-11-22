@@ -1,17 +1,17 @@
 # fpga-experiments
 Some verilog designs for an icestick40
 
-puck yet another 8-bit cpu on a small fpga
+puck: yet another 8-bit cpu on a small fpga
 
 
-with fpgas [link to wikipefua] becoming cheaper [link to sinuss], more convenient [link to lattice] and easier to program [link to yosys] I wanted to try my hand at designing an 8-bit cpu. For no particular reason, just out of curiosity :-)
+with fpgas [https://en.m.wikipedia.org/wiki/Field-programmable_gate_array] becoming cheaper, more convenient [http://www.latticesemi.com/icestick] and easier to program [http://www.clifford.at/yosys/] I wanted to try my hand at designing an 8-bit cpu. For no particular reason, just out of curiosity :-)
 
-there have been plenty of inspirational projects ([link to swapforth],[link to nocpu]) but I wanted to start from scratch a document my findings, especially those related to Verilog [link], the hardware description language I have chosen to define my CPU with.
+there have been plenty of inspirational projects ([https://github.com/jamesbowman/swapforth],[https://bitbucket.org/linuxlalala/nopcpu/src/master/]) but I wanted to start from scratch a document my findings, especially those related to Verilog [https://www.doulos.com/knowhow/verilog_designers_guide/what_is_verilog/], the hardware description language I have chosen to define my CPU with.
 
 my development platform consists of:
 
 - yosys/icestorm on Ubuntu
-  I won't decument the installation process. jyst check te site [link] and follow the instructions and the components will work out of the box
+  I won't decument the installation process. just check the Icestorm site [http://www.clifford.at/icestorm/] and follow the instructions and the components will work out of the box
 
 - a Lattice IceStick
   pretty powerful (should be able to run at clockspeeds well over 100 MHz), affordable and easy to use with its USB connector. it is not really large but big enough to implement an 8-bit processor, complete with ram, a serial interface (uart) and a small monitor mode to load/save data to memory and start a program
