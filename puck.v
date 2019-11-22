@@ -71,7 +71,7 @@ module top(
 
 	// uart instantiation
 	uart #(
-		.baud_rate(9600),                 // The baud rate in kilobits/s
+		.baud_rate(19200),                 // The baud rate in kilobits/s
 		.sys_clk_freq(12000000)           // The master clock frequency
 	)
 	uart0(
@@ -215,7 +215,7 @@ module top(
 					*/
 					// default	:	m_state <= START; // adding this unnecessaru default consumes 24 LC 
 				endcase
-				{LED2, LED1, LED0} <= m_state;
+				//{LED2, LED1, LED0} <= m_state;
 			end else begin
 				if (m_state == RUNSTART) begin m_c_reset <= 1; m_state <= START; end
 			end
