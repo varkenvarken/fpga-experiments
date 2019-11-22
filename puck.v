@@ -15,8 +15,7 @@
  */
 
 `include "cores/osdvu/uart.v"
-`include "ram.v"
-`include "cpu.v"
+
 
 `define ADDR_WIDTH 12	// 4K ram. 8K won't fit the icestick (ram is available but register width etc eats up space: we use 104% of available LCs)
 
@@ -69,13 +68,21 @@ module top(
 	// access to cpu
 	reg m_c_reset = 0;
 
+	wire p_clock_out, locked;
+	pll pll0(
+		iCE_CLK,
+		p_clock_out,
+		locked
+	);
+	assign LED4 = locked;
+
 	// uart instantiation
 	uart #(
 		.baud_rate(9600),                 // The baud rate in kilobits/s
-		.sys_clk_freq(12000000)           // The master clock frequency
+		.sys_clk_freq(24000000)           // The master clock frequency
 	)
 	uart0(
-		.clk(iCE_CLK),                      // The master clock for this module
+		.clk(p_clock_out),                      // The master clock for this module
 		.rst(u_reset),                      // Synchronous reset
 		.rx(RS232_Rx_TTL),                  // Incoming serial line
 		.tx(RS232_Tx_TTL),                  // Outgoing serial line
@@ -93,16 +100,16 @@ module top(
 		.din(r_din), 
 		.write_en(r_write_en), 
 		.waddr(r_waddr), 
-		.wclk(iCE_CLK), 
+		.wclk(p_clock_out), 
 		.raddr(r_raddr), 
-		.rclk(iCE_CLK), 
+		.rclk(p_clock_out), 
 		.dout(r_dout)
 	);
 
 	// cpu instantiation
 	cpu #(.addr_width(`ADDR_WIDTH)) cpu0(
 		.rst(c_reset),
-		.clk(iCE_CLK),
+		.clk(p_clock_out),
 		.dread(r_dout), // from ram to cpu
 		.c_raddr(c_raddr),
 		.c_waddr(c_waddr),
@@ -120,7 +127,6 @@ module top(
 
 	// interconnect wiring
 	// led access comes from uart as well as cpu
-	assign LED4 = u_recv_error;
 	assign LED3 = c_led;
 
 	// uart access is shared by monitor and cpu
@@ -160,7 +166,7 @@ module top(
 	localparam DODUMP  = 2'd2;
 	localparam DOEXEC  = 2'd3;
 
-	always @(posedge iCE_CLK) begin
+	always @(posedge p_clock_out) begin
 		m_transmit <= 0;
 		m_write_en <= 0;
 		m_c_reset <= 0;

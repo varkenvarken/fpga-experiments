@@ -21,11 +21,14 @@ all: $(OUTPUT)
 %.asc: %.json
 	$(PNR) $(DEVICE) --placer $(PLACER) --package $(PACKAGE) --json $< --pcf $(PCF) --asc $@
 
-%.json: $(TOP) ram.v cpu.v alu.v branchlogic.v rom.v
+%.json: $(TOP) ram.v cpu.v alu.v branchlogic.v rom.v pll.v
 	$(SYN) -q -p "read_verilog $<; hierarchy -libdir . ; synth_ice40 -flatten -json $@"
 
 rom.v: rom.py
 	$(ROMGEN) > $@
+
+pll.v:
+	icepll -i 12 -o 24 -f $@ -m
 
 clean:
 	rm -f *.bin *.blif *.tiles *.asc *.json
