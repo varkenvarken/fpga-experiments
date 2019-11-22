@@ -71,7 +71,7 @@ module top(
 
 	// uart instantiation
 	uart #(
-		.baud_rate(19200),                 // The baud rate in kilobits/s
+		.baud_rate(9600),                 // The baud rate in kilobits/s
 		.sys_clk_freq(12000000)           // The master clock frequency
 	)
 	uart0(

@@ -207,8 +207,8 @@ module cpu(
 							pc <= pc + 1;
 						end
 			DECODE2	:	begin
-							if (opcode[6:5] == 0) begin // regular opcodes
-								case (opcode[4:0])
+							case (opcode[6:5]) 
+								0: case (opcode[4:0])
 									5'h00	:	begin	// LDA immediate
 													A <= operand;
 													state <= FETCH;
@@ -241,6 +241,19 @@ module cpu(
 													dwrite <= register == 0 ? A : ( register == 1 ? B : (register == 2 ? C : D));
 													state <= FETCH;
 												end
+									5'h0c,
+									5'h0d,
+									5'h0e,
+									5'h0f,
+									5'h13,
+									5'h14,
+									5'h15,
+									5'h16,
+									5'h17,
+									5'h18,
+									5'h19,
+									5'h1a,
+									5'h1b,
 									5'h10	:	begin   // BRA <offset>
 													pc <= jmpaddress;
 													state <= FETCH;
@@ -249,31 +262,35 @@ module cpu(
 													pc <= jmpaddressz;
 													state <= FETCH;
 												end
-									 5'h12	:	begin   // BRC <offset>
+									5'h12	:	begin   // BRC <offset>
 													pc <= jmpaddressc;
 													state <= FETCH;
 												end
-									default	:	state <= FETCH; // ignore all undefined 2 byte opcodes
-								endcase
-							end else begin // long address opcodes
-								case (opcode[6:5])
-									2'h1	:	begin	// LDBASE0
-													base0 <= {opcode[addr_width-8:0], operand};
-													state <= FETCH;
+									5'h1c,
+									5'h1d,
+									5'h1e,
+									5'h1f	:	begin  // LDAS, LDBS, LDCS, LDDS
+													c_raddr <= sp + operand;
+													state <= WAIT3;
 												end
-									2'h2	:	begin	// LDBASE1
-													base1 <= {opcode[addr_width-8:0], operand};
-													state <= FETCH;
-												end
-									2'h3	:	begin	// CALL <longmem>
-														c_waddr <= sp;
-														write_en <= 1;
-														dwrite <= {{(16-addr_width){1'b0}},pc[addr_width-1:8]};
-														state <= CALL1;
-												end
-									default	:	state <= FETCH; // ignore all undefined 2 byte longmem opcodes
-								endcase
-							end
+									//default	:	state <= FETCH; // ignore all undefined 2 byte opcodes
+								   endcase
+								1: begin	// LDBASE0
+										base0 <= {opcode[addr_width-8:0], operand};
+										state <= FETCH;
+								   end
+								2	:	begin	// LDBASE1
+											base1 <= {opcode[addr_width-8:0], operand};
+											state <= FETCH;
+										end
+								3	:	begin	// CALL <longmem>
+											c_waddr <= sp;
+											write_en <= 1;
+											dwrite <= {{(16-addr_width){1'b0}},pc[addr_width-1:8]};
+											state <= CALL1;
+										end
+								//	default	:	state <= FETCH; // ignore all undefined 2 byte longmem opcodes
+							endcase
 						end
 			MEMLOAD	:	begin
 							case (register)
