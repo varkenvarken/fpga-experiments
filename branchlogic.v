@@ -11,7 +11,7 @@ module branchlogic(
 	wire [addr_width-1:0] signextend;
 	wire [addr_width-1:0] newaddr;
 	assign signextend = {{(addr_width-8){offset[7]}},offset};
-	assign newaddr = addr + signextend + {{(addr_width-1){1'b0}}, offset[7]};
+	assign newaddr = addr + signextend; // + {{(addr_width-1){1'b0}}, offset[7]};
 	assign result0 = newaddr;
 	assign resultc = condition[1] ? newaddr : addr; 
 	assign resultz = condition[0] ? newaddr : addr; 
