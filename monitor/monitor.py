@@ -24,13 +24,19 @@ from time import sleep
 # x binary file loading
 # - echo matching (to verify is a command is understood//echoed)
 # x run <address>
-# - add flush read buffer before each commad exec
-# - help command
+# x add flush read buffer before each command exec (except flush)
+# x help command
 # - error checking
 # - sanitize code, split op in proper reusable functions
 
+def flush(ser):
+	while ser.in_waiting:
+		ret = ser.read(ser.in_waiting)
+		sleep(0.1)
+
 with serial.Serial(port='/dev/ttyUSB1', stopbits=serial.STOPBITS_TWO) as ser:
 	stopped = False
+	print('type help for commands')
 	while not stopped:
 		line = input('>')
 		cmd = line.split()
@@ -38,6 +44,7 @@ with serial.Serial(port='/dev/ttyUSB1', stopbits=serial.STOPBITS_TWO) as ser:
 		if cmd[0] == 'exit':
 			stopped = True
 		elif cmd[0] in { 'dump', 'dumps' }:
+			flush(ser)
 			addr = int(cmd[1],16)
 			length = int(cmd[2])
 			data = [(addr >> 8), (addr & 255), (128+length)]
@@ -50,6 +57,7 @@ with serial.Serial(port='/dev/ttyUSB1', stopbits=serial.STOPBITS_TWO) as ser:
 			while not ser.in_waiting:
 				sleep(0.1)
 			count = 0
+			print("%04x "%addr, end='')
 			while ser.in_waiting:
 				ret = ser.read(ser.in_waiting)
 				if cmd[0] == 'dump':
@@ -57,12 +65,14 @@ with serial.Serial(port='/dev/ttyUSB1', stopbits=serial.STOPBITS_TWO) as ser:
 						print("%02x "%int(b), end='')
 						count += 1
 						if count % 8 == 0:
-							print('')
+							addr += 8
+							print("\n%04x "%addr, end='')
 				else:
 					print(ret.decode('utf-8', "backslashreplace"), end='')
 				sleep(0.1)
 			print('\nok')
 		elif cmd[0] == 'load':
+			flush(ser)
 			addr = int(cmd[1],16)
 			if cmd[2].startswith('"'):
 				q = line.find('"')
@@ -89,6 +99,7 @@ with serial.Serial(port='/dev/ttyUSB1', stopbits=serial.STOPBITS_TWO) as ser:
 				sleep(0.1)
 			print('ok')
 		elif cmd[0] == 'file':
+			flush(ser)
 			with open(cmd[1], 'rb') as f:
 				hexbytes = f.read()
 				length = len(hexbytes)
@@ -133,6 +144,7 @@ with serial.Serial(port='/dev/ttyUSB1', stopbits=serial.STOPBITS_TWO) as ser:
 					sleep(0.1)
 			print('ok')
 		elif cmd[0] in  {'run', 'runs'}:
+			flush(ser)
 			addr = int(cmd[1],16)
 			data = [(addr >> 8), (addr & 255), (0xc0)]
 			send = bytes(data)
@@ -161,6 +173,33 @@ with serial.Serial(port='/dev/ttyUSB1', stopbits=serial.STOPBITS_TWO) as ser:
 				sleep(1.0) # timeout, we do not know when a program is going to end
 				again = ser.in_waiting > 0
 			print('\nok')
+		elif cmd[0] in  {'flush'}:
+			count = 0
+			while ser.in_waiting:
+				ret = ser.read(ser.in_waiting)
+				for b in ret:
+					print("%02x "%int(b), end='')
+					count += 1
+					if count % 16 == 0:
+						print('')
+				sleep(0.1)
+			print('\nok')
+		elif cmd[0] in  {'help'}:
+			print("""
+all commands are lowercase
 
+exit                                leave monitor program
+
+address is in hex, length in decimal, byte in hex!
+
+dump  <address> <length>            show bytes in memory locations
+dumps <address> <length>            show bytes as a string
+load  <address> <length> <byte> ... put bytes in memory locations
+load  <address> "any text"          put string in mem, adds null
+file  <filename>                    loads binary file into mem at 0000
+run   <address>                     execute program at address
+runs  <address>                     execute program and show output as text
+flush                               dump any remaining bytes in receive buffer
+""")
 		else:
 			print('unknown command', cmd[0])
