@@ -1,3 +1,4 @@
+// completely combinatorial (no registers) implementation of an 8-bit ALU
 module alu(
 	input [7:0] a,
 	input [7:0] b,
