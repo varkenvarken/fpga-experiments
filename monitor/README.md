@@ -14,31 +14,31 @@ running
 commands
 --------
 
-- **dump <hexaddr> <length>
- dump <length> bytes at <hexaddress> as hex bytes
+- **dump** \<hexaddr\> \<length\>
+ dump <length> bytes at \<hexaddress\> as hex bytes
 
-- **dumps <hexaddr> <length>
- dump <length> bytes at <hexaddress> as unicode characters
+- **dumps** \<hexaddr\> \<length\>
+ dump \<length\> bytes at \<hexaddress\> as unicode characters
 
-- **load <hexaddr> <length> <hexbyte> ...
-  load <length> bytes in to memory starting at <hexaddress>
+- **load** \<hexaddr\> \<length\> \<hexbyte\> ...
+  load \<length\> bytes in to memory starting at <hexaddress>
 
-- **file <filename>
- load binary data from ,filename> starting at address 0000
+- **file** \<filename\>
+ load binary data from \<filename\> into memory starting at address 0000
 
-- **run <hexaddr>
+- **run** \<hexaddr\>
  run a program at <hexaddr> and show output as hex bytes
 
-- **runs <hexaddr>
- run a program at <hexaddr> and show output as unicode characters
+- **runs** \<hexaddr\>
+ run a program at \<hexaddr\> and show output as unicode characters
 
-- **flush
+- **flush**
  dump any remaining data in the receive buffer as hex bytes
 
-- **exit
+- **exit**
  exits the monitor (and closes the serial connection)
 
-- **help
+- **help**
  shows help menu
 
 caveats
