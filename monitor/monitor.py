@@ -40,6 +40,7 @@ import cmd
 class Monitor(cmd.Cmd):
 	def preloop(self):
 		self.ser = serial.Serial(port='/dev/ttyUSB1', stopbits=serial.STOPBITS_TWO)
+		self.lastaddr = 0
 
 	def postloop(self):
 		self.ser.close()
@@ -60,9 +61,20 @@ class Monitor(cmd.Cmd):
 				ret = self.ser.read(self.ser.in_waiting)
 				sleep(0.1)
 
-	def split(self, line):
+	def splitdump(self, line):
 		"""
-		split line into arguments.
+		split line into arguments:  ADDR [LEN]
+		"""
+		self.args = line.strip().split()
+		self.addr = int(self.args[0],16) if len(self.args) > 0 else self.lastaddr
+		self.length = int(self.args[1], base=0) if len(self.args) > 1 else 0
+		self.hexbytes = []
+		self.lastaddr = self.addr 
+		return self.addr
+
+	def splitload(self, line):
+		"""
+		split line into arguments:  ADDR BYTE [BYTE ...] or ADDR "string"
 		"""
 		self.args = line.strip().split()
 		self.addr = int(self.args[0],16)
@@ -76,11 +88,8 @@ class Monitor(cmd.Cmd):
 			self.length = len(hexbytes)
 		else:
 			if len(self.args) > 1:
-				self.length = int(self.args[1])
-				if len(self.args) > 2:
-					hexbytes = [int(hb,16) for hb in self.args[2:]]
-					if len(hexbytes) < self.length:
-						hexbytes.extend([0] * (self.length - len(hexbytes)))
+				hexbytes = [int(hb,base=0) for hb in self.args[1:]]
+				self.length = len(hexbytes)
 			else:
 				self.length = 0
 		self.hexbytes = hexbytes
@@ -100,32 +109,40 @@ class Monitor(cmd.Cmd):
 		dump <hexaddr> <length>          dump bytes
 		"""
 		self.flush()
-		addr = self.split(line)
+		addr = self.splitdump(line)
+		if self.length == 0:
+			self.length = 48
 		data = [(addr >> 8), (addr & 255), (128+self.length)]
 		self.ser.write(bytes(data))
 		self.wait(0.1)
 		self.flush(len(data))
 		self.wait(0.1)
 		count = 0
-		print("%04x "%addr, end='')
+		needaddr = True
 		while self.ser.in_waiting:
 			ret = self.ser.read(self.ser.in_waiting)
 			for b in ret:
+				if needaddr:
+					print("%04x "%addr, end='')
+					needaddr = False
 				print("%02x "%int(b), end='')
 				count += 1
 				if count % 8 == 0:
 					addr += 8
-					print("\n%04x "%addr, end='')
+					print("")
+					needaddr = True
 			sleep(0.1)
 		print('\nok')
 		return False
 
 	def do_dumps(self, line):
 		"""
-		dumps <hexaddr> <length>          dump string (max <length> bytes)
+		dumps <hexaddr> [<length>]          dump string (max <length> bytes or 48 bytes if omitted)
 		"""
 		self.flush()
-		addr = self.split(line)
+		addr = self.splitdump(line)
+		if self.length == 0:
+			self.length = 48
 		data = [(addr >> 8), (addr & 255), (128+self.length)]
 		self.ser.write(bytes(data))
 		self.wait(0.1)
@@ -145,15 +162,18 @@ class Monitor(cmd.Cmd):
 		load <hexaddr> <length> <hexbyte> ...  load <length> bytes into memory
 		"""
 		self.flush()
-		addr = self.split(line)
-		data = [(addr >> 8), (addr & 255), (64+self.length)]
-		self.ser.write(bytes(data))
-		self.wait(0.1)
-		self.flush(len(data))
-		self.ser.write(bytes(self.hexbytes))
-		self.wait(0.1)
-		self.flush(len(self.hexbytes))
-		print('ok')
+		addr = self.splitload(line)
+		if self.length:
+			data = [(addr >> 8), (addr & 255), (64+self.length)]
+			self.ser.write(bytes(data))
+			self.wait(0.1)
+			self.flush(len(data))
+			self.ser.write(bytes(self.hexbytes))
+			self.wait(0.1)
+			self.flush(len(self.hexbytes))
+			print('ok')
+		else:
+			print("no bytes specified")
 		return False
 
 	def do_file(self, line):
@@ -162,9 +182,13 @@ class Monitor(cmd.Cmd):
 		"""
 		self.flush()
 		args = line.strip().split()
-		with open(args[0], 'rb') as f:
-			hexbytes = f.read()
-			length = len(hexbytes)
+		try:
+			with open(args[0], 'rb') as f:
+				hexbytes = f.read()
+				length = len(hexbytes)
+		except FileNotFoundError:
+			print("file not found")
+			return False
 		addr = 0
 		while length > 63:
 			data = [(addr >> 8), (addr & 255), (64+63)]
@@ -194,7 +218,7 @@ class Monitor(cmd.Cmd):
 		run <hexaddress> 	run program at <hexaddress> showing output as hexbytes
 		"""
 		self.flush()
-		addr = self.split(line)
+		addr = self.splitload(line) # only interested in address, bytes will be ignored
 		data = [(addr >> 8), (addr & 255), (0xc0)]
 		self.ser.write(bytes(data))
 		self.wait(0.1)
@@ -222,7 +246,7 @@ class Monitor(cmd.Cmd):
 		runs <hexaddress> 	run program at <hexaddress> showing output as unicode chars
 		"""
 		self.flush()
-		addr = self.split(line)
+		addr = self.splitload(line)
 		data = [(addr >> 8), (addr & 255), (0xc0)]
 		self.ser.write(bytes(data))
 		self.wait(0.1)
