@@ -38,12 +38,27 @@ import cmd
 
 
 class Monitor(cmd.Cmd):
+	def __init__(self):
+		super().__init__()
+		self.scriptmode = False
+
 	def preloop(self):
 		self.ser = serial.Serial(port='/dev/ttyUSB1', stopbits=serial.STOPBITS_TWO)
 		self.lastaddr = 0
 
 	def postloop(self):
 		self.ser.close()
+
+	def precmd(self, line):
+		if self.scriptmode: print(line)
+		if line.strip().startswith("#") : return ''
+		return(line)
+
+	def do_EOF(self, line):
+		return True
+
+	def emptyline(self):  # empty lines are ignored because it is dangerous to run a command implicitely
+		pass
 
 	def flush(self, nbytes=0):
 		"""
@@ -112,7 +127,7 @@ class Monitor(cmd.Cmd):
 		"""
 		self.flush()
 		addr = self.splitdump(line)
-		if self.length == 0:
+		if self.length == 0 or self.length > 63:
 			self.length = 48
 		data = [(addr >> 8), (addr & 255), (128+self.length)]
 		self.ser.write(bytes(data))
@@ -134,7 +149,7 @@ class Monitor(cmd.Cmd):
 					print("")
 					needaddr = True
 			sleep(0.1)
-		print('\nok')
+		if not self.scriptmode: print('\nok')
 		return False
 
 	def do_dumps(self, line):
@@ -143,7 +158,7 @@ class Monitor(cmd.Cmd):
 		"""
 		self.flush()
 		addr = self.splitdump(line)
-		if self.length == 0:
+		if self.length == 0 or self.length > 63:
 			self.length = 48
 		data = [(addr >> 8), (addr & 255), (128+self.length)]
 		self.ser.write(bytes(data))
@@ -156,7 +171,7 @@ class Monitor(cmd.Cmd):
 			ret = self.ser.read(self.ser.in_waiting)
 			print(ret.decode('utf-8', "backslashreplace"), end='')
 			sleep(0.1)
-		print('\nok')
+		if not self.scriptmode: print('\nok')
 		return False
 
 	def do_load(self, line):
@@ -165,7 +180,7 @@ class Monitor(cmd.Cmd):
 		"""
 		self.flush()
 		addr = self.splitload(line)
-		if self.length:
+		if self.length and self.length < 63:
 			data = [(addr >> 8), (addr & 255), (64+self.length)]
 			self.ser.write(bytes(data))
 			self.wait(0.1)
@@ -173,9 +188,9 @@ class Monitor(cmd.Cmd):
 			self.ser.write(bytes(self.hexbytes))
 			self.wait(0.1)
 			self.flush(len(self.hexbytes))
-			print('ok')
+			if not self.scriptmode: print('ok')
 		else:
-			print("no bytes specified")
+			print("no bytes specified or more than 63")
 		return False
 
 	def do_file(self, line):
@@ -212,7 +227,7 @@ class Monitor(cmd.Cmd):
 			self.ser.write(send)
 			self.wait(0.1)
 			self.flush(len(send))
-		print('ok')
+		if not self.scriptmode: print('ok')
 		return False
 
 	def do_run(self, line):
@@ -225,7 +240,7 @@ class Monitor(cmd.Cmd):
 		self.ser.write(bytes(data))
 		self.wait(0.1)
 		self.flush(len(data))
-		print('running...')
+		if not self.scriptmode: print('running...')
 		count = 0
 		again = True
 		while again:
@@ -240,7 +255,7 @@ class Monitor(cmd.Cmd):
 				sleep(0.1)
 			sleep(1.0) # timeout, we do not know when a program is going to end
 			again = self.ser.in_waiting > 0
-		print('\nok')
+		if not self.scriptmode: print('\nok')
 		return False
 
 	def do_test(self, line):
@@ -251,8 +266,8 @@ class Monitor(cmd.Cmd):
 		addr = self.splitload(line)
 		compare = bytearray(self.hexbytes)
 		string = self.string
-		if self.length == 0:
-			print("no length specified or empty string")
+		if self.length == 0 or self.length > 63:
+			print("no length specified, empty string or more than 63 bytes")
 			return False
 		data = [(addr >> 8), (addr & 255), (128+self.length)]
 		self.ser.write(bytes(data))
@@ -277,7 +292,7 @@ class Monitor(cmd.Cmd):
 						error = "not ok (at pos %d, [%s|%s])" % (i," ".join(["%02x"%int(b) for b in compare]), " ".join(["%02x"%int(b) for b in result]))
 					break
 				i += 1
-			print(error) 
+			if not self.scriptmode or error != 'ok': print(error) 
 		return False
 
 	def do_runs(self, line):
@@ -290,7 +305,7 @@ class Monitor(cmd.Cmd):
 		self.ser.write(bytes(data))
 		self.wait(0.1)
 		self.flush(len(data))
-		print('running...')
+		if not self.scriptmode: print('running...')
 		count = 0
 		again = True
 		while again:
@@ -301,7 +316,7 @@ class Monitor(cmd.Cmd):
 				sleep(0.1)
 			sleep(1.0) # timeout, we do not know when a program is going to end
 			again = self.ser.in_waiting > 0
-		print('\nok')
+		if not self.scriptmode: print('\nok')
 		return False
 
 	def do_flush(self, line):
@@ -317,7 +332,7 @@ class Monitor(cmd.Cmd):
 				if count % 16 == 0:
 					print('')
 			sleep(0.1)
-			print('\nok')
+		if not self.scriptmode: print('\nok')
 		return False
 
 	def do_exit(self, line):
@@ -328,6 +343,12 @@ class Monitor(cmd.Cmd):
 		return True
 
 if __name__ == '__main__':
-    m = Monitor()
-    m.prompt = '>'
-    m.cmdloop()
+	from argparse import ArgumentParser
+	parser = ArgumentParser()
+	parser.add_argument('-t', '--test', help='run in test mode', action="store_true")
+	args = parser.parse_args()
+
+	m = Monitor()
+	m.prompt = '' if args.test else '>'
+	m.scriptmode = args.test
+	m.cmdloop()
