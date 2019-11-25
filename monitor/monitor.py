@@ -23,9 +23,9 @@
 # x run <address>
 # x add flush read buffer before each command exec (except flush)
 # x help command
-# - error checking
+# x some error checking
 # x sanitize code, split op in proper reusable functions
-# - nice to have: TEST <addr> <byte> ...
+# x nice to have: TEST <addr> <byte> ...
 # - nice to have: serial line name and properties configurable via argparse
 #
 # Note: this is not a proper terminal program as both sending and
@@ -80,12 +80,14 @@ class Monitor(cmd.Cmd):
 		self.addr = int(self.args[0],16)
 		q = line.find('"')
 		hexbytes = []
+		self.string = False
 		if q >= 0:
 			for c in line[q+1:]:
 				if c == '"': break
 				hexbytes.append(ord(c))
 			hexbytes.append(0)
 			self.length = len(hexbytes)
+			self.string = True
 		else:
 			if len(self.args) > 1:
 				hexbytes = [int(hb,base=0) for hb in self.args[1:]]
@@ -239,6 +241,43 @@ class Monitor(cmd.Cmd):
 			sleep(1.0) # timeout, we do not know when a program is going to end
 			again = self.ser.in_waiting > 0
 		print('\nok')
+		return False
+
+	def do_test(self, line):
+		"""
+		test <hexaddress> (<len> <byte> ... | "string" )   verify contents of memory 
+		"""
+		self.flush()
+		addr = self.splitload(line)
+		compare = bytearray(self.hexbytes)
+		string = self.string
+		if self.length == 0:
+			print("no length specified or empty string")
+			return False
+		data = [(addr >> 8), (addr & 255), (128+self.length)]
+		self.ser.write(bytes(data))
+		self.wait(0.1)
+		self.flush(len(data))
+		self.wait(0.1)
+		result = bytearray()
+		while self.ser.in_waiting:
+			ret = self.ser.read(self.ser.in_waiting)
+			result.extend(ret)
+			sleep(0.1)
+		if len(compare) != len(result):
+			print("not ok (unequal lengths)")
+		else:
+			i = 0
+			error = "ok"
+			for original,returned in zip(compare,result):
+				if original != returned:
+					if string:
+						error = "not ok (at pos %d, [%s|%s])" % (i,compare.decode('utf-8', "backslashreplace"), result.decode('utf-8', "backslashreplace"))
+					else:
+						error = "not ok (at pos %d, [%s|%s])" % (i," ".join(["%02x"%int(b) for b in compare]), " ".join(["%02x"%int(b) for b in result]))
+					break
+				i += 1
+			print(error) 
 		return False
 
 	def do_runs(self, line):
