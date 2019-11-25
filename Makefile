@@ -18,10 +18,10 @@ all: $(OUTPUT)
 %.bin: %.asc
 	$(GEN) $< $@
 
-%.asc: %.json
+%.asc: %.json $(PCF)
 	$(PNR) $(DEVICE) --placer $(PLACER) --package $(PACKAGE) --json $< --pcf $(PCF) --asc $@
 
-%.json: $(TOP) ram.v cpu.v alu.v branchlogic.v rom.v pll.v
+%.json: $(TOP) ram.v cpu.v alu.v branchlogic.v rom.v pll.v $(PCF)
 	$(SYN) -q -p "read_verilog $<; hierarchy -libdir . ; synth_ice40 -flatten -json $@"
 
 rom.v: rom.py
