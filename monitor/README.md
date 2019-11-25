@@ -4,7 +4,7 @@ monitor.py
 The **monitor.py** program simplifies working with the monitor code
 built into the puck SOC.
 
-It connects to /dev/ttyUSB1 with 9600 8-N-2 (currenlty hardcoded)
+It connects to **/dev/ttyUSB1** with **9600 8-N-2** (currently hardcoded)
 
 running
 -------
