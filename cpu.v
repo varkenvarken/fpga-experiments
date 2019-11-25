@@ -81,6 +81,7 @@ module cpu(
 	localparam RETURN5   = 5'd24; // next state is always FETCH
 	localparam WAITBASER = 5'd25; // next state is always WAITBASER1
 	localparam WAITBASER1= 5'd26; // next state is always FETCH
+	localparam STIDPWAIT = 5'd31; // next state is always FETCH
 	reg [4:0] state = START;
 
 	wire [4:0] rom_raddr, next_state;
@@ -184,7 +185,7 @@ module cpu(
 																c_waddr <= base1 + D;
 																write_en <= 1;
 																dwrite <= A;
-																state <= FETCH;
+																state <= FETCH; //STIDPWAIT; // FETCH
 																if(register==3)	D <= D + 1;
 															  end
 													default : state <= FETCH;
@@ -344,6 +345,7 @@ module cpu(
 								state <= FETCH;
 							end
 						end
+			//STIDPWAIT:	if(register==3)	D <= D + 1;
 		endcase
 	end
 

@@ -99,6 +99,7 @@ RETURN4   = 23; # next state is always RETURN5
 RETURN5   = 24; # next state is always FETCH
 WAITBASER = 25; # next state is always WAITBASER1
 WAITBASER1= 26; # next state is always FETCH
+STIDPWAIT = 31; # next state is always FETCH
 
 data = {
     START     :START,
@@ -127,7 +128,8 @@ data = {
     RETURN4   :RETURN5,
     RETURN5   :FETCH,
     WAITBASER :WAITBASER1,
-    WAITBASER1:FETCH
+    WAITBASER1:FETCH,
+    STIDPWAIT :FETCH,
     }
     
 data = [data[k] for k in sorted(data)]
