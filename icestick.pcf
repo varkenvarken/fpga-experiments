@@ -65,3 +65,5 @@ set_io RS232_Rx_TTL 9
 
 # 12 MHz clock
 set_io iCE_CLK 21
+
+set_frequency p_clock_out 24.0
