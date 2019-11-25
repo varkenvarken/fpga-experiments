@@ -69,7 +69,7 @@ opcodes = {
 	'LDIC'		: {'implied' : (0x30, 1) },
 	'LDICP'		: {'implied' : (0x32, 1) },
 	'STID'		: {'implied' : (0x39, 1) },
-	'STDIP'		: {'implied' : (0x3b, 1) },
+	'STIDP'		: {'implied' : (0x3b, 1) },
 	'ADD'		: {'implied' : (0x70, 1) },
 	'ADC'		: {'implied' : (0x71, 1) },
 	'SUB'		: {'implied' : (0x72, 1) },
@@ -103,9 +103,9 @@ def stripcomment(line):
 		line = line[:c]
 	return line
 
-linere = re.compile(r"(?P<Label>(?P<labelname>[A-Za-z_][A-Za-z_]*):(\s+(?P<labeldef>.*))?)|(?P<Mnemonic>(?P<mnemonicname>[A-Z][A-Z0-9]+)(\s+(?P<arg>(?P<imm>[#]\s*.+)|(?P<addr>[^#].*)))?)")
+linere = re.compile(r"(?P<Label>(?P<labelname>[A-Za-z_][A-Za-z_0-9]*):(\s+(?P<labeldef>.*))?)|(?P<Mnemonic>(?P<mnemonicname>[A-Z][A-Z0-9]+)(\s+(?P<arg>(?P<imm>[#]\s*.+)|(?P<addr>[^#].*)))?)")
 
-addrre = re.compile(r"(?P<Label>(?P<labelname>[A-Za-z_][A-Za-z_]*))|(?P<decimal>\d+)|(?P<hex>\$[01-9a-fA-F]+)")
+addrre = re.compile(r"(?P<Label>(?P<labelname>[A-Za-z_][A-Za-z_0-9]*))|(?P<decimal>\d+)|(?P<hex>\$[01-9a-fA-F]+)")
 
 def parseaddr(addr):
 	m = addrre.match(addr)
@@ -303,7 +303,7 @@ def fill():
 
 if __name__ == '__main__':
 	parser = ArgumentParser()
-	parser.add_argument('-n', '--nopreamble', help='suppress puck monitor load code', action="store_true")
+	parser.add_argument('-p', '--preamble', help='add puck monitor load code', action="store_true")
 	parser.add_argument('-l', '--labels', help='print list of labels to stderr', action="store_true")
 	parser.add_argument('-d', '--debug', help='dump internal code representation', action="store_true")
 	parser.add_argument('-v', '--verbose', help='print annotated source code', action="store_true", default=False)
@@ -331,11 +331,11 @@ if __name__ == '__main__':
 	start = 0
 	end = 63
 	while end <= nbytes:
-		if not args.nopreamble: sys.stdout.buffer.write(bytes([(start>>8),(start&0xff),0x7f]))
+		if args.preamble: sys.stdout.buffer.write(bytes([(start>>8),(start&0xff),0x7f]))
 		sys.stdout.buffer.write(bytes([c[1] if c[1] >= 0 else 256 + c[1] for c in code[start:end]]))
 		start = end
 		end += 63
-	if not args.nopreamble: sys.stdout.buffer.write(bytes([(start>>8),(start&0xff),0x40 + nbytes - start]))
+	if args.preamble: sys.stdout.buffer.write(bytes([(start>>8),(start&0xff),0x40 + nbytes - start]))
 	sys.stdout.buffer.write(bytes([c[1] if c[1] >= 0 else 256 + c[1] for c in code[start:nbytes]]))
 
 	sys.exit(errors > 0)
