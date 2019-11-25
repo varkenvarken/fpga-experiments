@@ -12,7 +12,7 @@ module ram (din, write_en, waddr, wclk, raddr, rclk, dout);//512x8
 	reg [data_width-1:0] mem [(1<<addr_width)-1:0]
 	;
 
-	always @(posedge wclk) // Write memory.
+	always @(negedge wclk) // Write memory.
 	begin
 		if (write_en) mem[waddr] <= din; // Using write address bus.
 	end
