@@ -103,7 +103,7 @@ def stripcomment(line):
 		line = line[:c]
 	return line
 
-linere = re.compile(r"(?P<Label>(?P<labelname>[A-Za-z_][A-Za-z_0-9]*):(\s+(?P<labeldef>.*))?)|(?P<Mnemonic>(?P<mnemonicname>[A-Z][A-Z0-9]+)(\s+(?P<arg>(?P<imm>[#]\s*.+)|(?P<addr>[^#].*)))?)")
+linere = re.compile(r"(?P<Label>(?P<labelname>[A-Za-z_][A-Za-z_0-9]*):(\s+(?P<labeldef>.*))?)|(?P<Mnemonic>(?P<mnemonicname>[A-Za-z][A-Za-z0-9]+)(\s+(?P<arg>(?P<imm>[#]\s*.+)|(?P<addr>[^#].*)))?)")
 
 addrre = re.compile(r"(?P<Label>(?P<labelname>[A-Za-z_][A-Za-z_0-9]*))|(?P<decimal>\d+)|(?P<hex>\$[01-9a-fA-F]+)")
 
@@ -164,7 +164,7 @@ def process(line, echo=False):
 			labels[groups['labelname']] = address
 			if echo: print("%03d %04x %-23s %s" % (lineno, address, groups['labelname'], line), file=sys.stderr)
 		elif groups['Mnemonic']:
-			opcode = groups['mnemonicname']
+			opcode = groups['mnemonicname'].upper()
 			if opcode in opcodes:
 				info = opcodes[opcode]
 				arg = groups['arg']
