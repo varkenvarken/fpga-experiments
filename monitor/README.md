@@ -14,42 +14,54 @@ running
 commands
 --------
 
-- **dump** \<hexaddr\> \<length\>
- dump <length> bytes at \<hexaddress\> as hex bytes
+- **dump** \[ \<hexaddr\> \[ \<length\> \] \]
 
-- **dumps** \<hexaddr\> \<length\>
- dump \<length\> bytes at \<hexaddress\> as unicode characters
+>dump <length> bytes at \<hexaddress\> as hex bytes. defaults to 48 bytes. Dump without address dumps from last known address.
 
-- **load** \<hexaddr\> \<length\> \<hexbyte\> ...
-  load \<length\> bytes in to memory starting at <hexaddress>
+- **dumps** \<hexaddr\> \[ \<length\> \]
+
+>dump \<length\> bytes at \<hexaddress\> as unicode characters. defaults to 48 bytes.
+
+- **load** \<hexaddr\> ( \<byte\> ... | "string" )
+
+>load bytes in to memory starting at <hexaddress>. If given a string adds nul character at the end.
 
 - **file** \<filename\>
- load binary data from \<filename\> into memory starting at address 0000
+
+>load binary data from \<filename\> into memory starting at address 0000
 
 - **run** \<hexaddr\>
- run a program at <hexaddr> and show output as hex bytes
+
+>run a program at <hexaddr> and show output as hex bytes
 
 - **runs** \<hexaddr\>
- run a program at \<hexaddr\> and show output as unicode characters
+
+>run a program at \<hexaddr\> and show output as unicode characters
+
+- **test** \<hexaddr\> (\<byte\> ... | "string" )
+
+>checks whether memory at \<hexaddr\> contains the given bytes
 
 - **flush**
- dump any remaining data in the receive buffer as hex bytes
+
+>dump any remaining data in the receive buffer as hex bytes
 
 - **exit**
- exits the monitor (and closes the serial connection)
+
+>exits the monitor (and closes the serial connection)
 
 - **help**
- shows help menu
+
+>shows help menu
 
 caveats
 -------
 
-- Addresses are always expected to be hexadecimal digits.
-- Lengths are always expected to be in decimal.
-- Bytes to be loaded are specified in hexadecimal.
+- Addresses are **alway**s expected to be hexadecimal digits.
+- Bytes to be loaded are specified in **decimal** unless prefixed with 0x or 0b.
 - When running a program output is dumped on screen. However, if the
  running program stops emitting output for longer than 1 second, the run
- command will return while the program keeps on running. The **flush**
+ command will return while the program keeps on running. The **flush** command
  might then be used to retreive any later output.
 
  
