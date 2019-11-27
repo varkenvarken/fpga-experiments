@@ -41,6 +41,7 @@ opcodes = {
 	'OUTA'		: {'implied' : (0x01, 1) },
 	'INA'		: {'implied' : (0x02, 1) },
 	'CLF'		: {'implied' : (0x03, 1) },
+	'CNTRA'		: {'implied' : (0x0f, 1) },
 	'BRA'		: {'relative': (0x90, 2) },
 	'BRZ'		: {'relative': (0x91, 2) },
 	'BRC'		: {'relative': (0x92, 2) },
