@@ -88,13 +88,15 @@ module cpu(
 	rom32x4 rom(rom_raddr, clk, next_state);
 	assign rom_raddr = state;
 
+	reg [4:0] counter; // 5-bit counter that can be moved to A; not really enough for proper cycle counting
+
 	always @(posedge clk)
 	begin
 		led <= 0;
 		write_en <= 0;
 		transmit <= 0;
 		halted <= 0;
-
+		counter <= counter + 1;
 		if(state)	state <= next_state;  // this statement is crucial as apparently the first couple of cycles sbram can output anything ...
 		case(state)
 			START	:	if(rst) begin 
@@ -102,6 +104,7 @@ module cpu(
 							sp <= {addr_width{1'b1}};
 							state <= FETCH;
 							led <= 1;
+							counter <= 0;
 						end
 			FETCH	:	begin
 							c_raddr <= pc; 
@@ -122,6 +125,7 @@ module cpu(
 										4'h1	:	state <= ECHO;	// OUTA
 										4'h2	:	state <= READ;	// INA
 										4'h3	:	begin flags <= 0; state <= FETCH;  end	// CLF
+										4'hf	:	begin A <= {3'b0, counter}; state <= FETCH;  end
 										default	:	state <= FETCH; // ignore all undefined 1 byte opcodes  NOTE!!! w.o. this default state stays DECODE and we have an issue then
 												endcase
 									3'h1	:	case (opcode[3:0])	// stack
