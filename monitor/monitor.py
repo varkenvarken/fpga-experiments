@@ -292,7 +292,7 @@ class Monitor(cmd.Cmd):
 
 	def do_load(self, line):
 		"""
-		load <hexaddr> <length> <hexbyte> ...  load <length> bytes into memory
+		load <hexaddr> <byte> ...  load bytes into memory
 		"""
 		self.flush()
 		addr = self.splitload(line)
@@ -301,12 +301,56 @@ class Monitor(cmd.Cmd):
 			self.ser.write(bytes(data))
 			self.wait(0.1)
 			self.flush(len(data))
-			self.ser.write(bytes(self.hexbytes))
+			self.ser.write(bytes(d if d>=0 else 256+d for d in self.hexbytes))
 			self.wait(0.1)
 			self.flush(len(self.hexbytes))
 			if not self.scriptmode: print('ok')
 		else:
-			print("no bytes specified or more than 63")
+			print("no bytes specified or more than 62")
+		return False
+
+	def do_loadw(self, line):
+		"""
+		loadw <hexaddr> <word> ...  load words into memory
+		"""
+		self.flush()
+		addr = self.splitload(line)
+		if self.length and self.length < 31:
+			self.length *= 2
+			data = [(addr >> 8), (addr & 255), (64+self.length)]
+			self.ser.write(bytes(data))
+			self.wait(0.1)
+			self.flush(len(data))
+			data = [d.to_bytes(2,byteorder='big',signed=(d < 0x8000)) for d in self.hexbytes]
+			data = [item for sublist in data for item in sublist]
+			self.ser.write(bytes(data))
+			self.wait(0.1)
+			self.flush(len(self.hexbytes))
+			if not self.scriptmode: print('ok')
+		else:
+			print("no words specified or more than 30")
+		return False
+
+	def do_loadl(self, line):
+		"""
+		loadl <hexaddr> <long> ...  load long words into memory
+		"""
+		self.flush()
+		addr = self.splitload(line)
+		if self.length and self.length < 15:
+			self.length *= 4
+			data = [(addr >> 8), (addr & 255), (64+self.length)]
+			self.ser.write(bytes(data))
+			self.wait(0.1)
+			self.flush(len(data))
+			data = [d.to_bytes(4,byteorder='big',signed=(d < 0x80000000)) for d in self.hexbytes]
+			data = [item for sublist in data for item in sublist]
+			self.ser.write(bytes(data))
+			self.wait(0.1)
+			self.flush(len(self.hexbytes))
+			if not self.scriptmode: print('ok')
+		else:
+			print("no words specified or more than 14")
 		return False
 
 	def do_file(self, line):
