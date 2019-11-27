@@ -36,6 +36,14 @@ import serial
 from time import sleep
 import cmd
 
+import os.path
+try:
+	import readline
+except ImportError:
+	readline = None
+
+histfile = os.path.expanduser('~/.monitor_history')
+histfile_size = 1000
 
 class Monitor(cmd.Cmd):
 	def __init__(self):
@@ -43,11 +51,16 @@ class Monitor(cmd.Cmd):
 		self.scriptmode = False
 
 	def preloop(self):
+		if readline and os.path.exists(histfile):
+			readline.read_history_file(histfile)
 		self.ser = serial.Serial(port='/dev/ttyUSB1', stopbits=serial.STOPBITS_TWO)
 		self.lastaddr = 0
 
 	def postloop(self):
 		self.ser.close()
+		if readline:
+			readline.set_history_length(histfile_size)
+			readline.write_history_file(histfile)
 
 	def precmd(self, line):
 		if self.scriptmode: print(line)
