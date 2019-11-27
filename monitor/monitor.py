@@ -94,6 +94,8 @@ class Monitor(cmd.Cmd):
 		split line into arguments:  ADDR [LEN]
 		"""
 		self.args = line.strip().split()
+		self.options = {a[1:]:True for a in self.args if a.startswith("-")}
+		self.args = [a for a in self.args if not a.startswith("-")]
 		self.addr = int(self.args[0],16) if len(self.args) > 0 else self.lastaddr
 		self.length = int(self.args[1], base=0) if len(self.args) > 1 else 0
 		self.hexbytes = []
@@ -155,7 +157,108 @@ class Monitor(cmd.Cmd):
 				if needaddr:
 					print("%04x "%addr, end='')
 					needaddr = False
-				print("%02x "%int(b), end='')
+				if 'd' in self.options:
+					if 's' in self.options:
+						w = int(b)
+						if w > 0x7f : w = -(0x100 - w)
+						print("%4d "%w, end='')
+					else:
+						print("%3d "%int(b), end='')
+				else:
+					print("%02x "%int(b), end='')
+				count += 1
+				if count % 8 == 0:
+					addr += 8
+					print("")
+					needaddr = True
+			sleep(0.1)
+		if not self.scriptmode: print('\nok')
+		return False
+
+	def do_dumpw(self, line):
+		"""
+		dumpw [-d] [-s] <hexaddr> <length>          dump words (big-endian)
+		"""
+		self.flush()
+		addr = self.splitdump(line)
+		if self.length & 1 : self.length -= 1  # make it even
+		if self.length == 0 or self.length > 63:
+			self.length = 48
+		data = [(addr >> 8), (addr & 255), (128+self.length)]
+		self.ser.write(bytes(data))
+		self.wait(0.1)
+		self.flush(len(data))
+		self.wait(0.1)
+		count = 0
+		needaddr = True
+		while self.ser.in_waiting:
+			ret = self.ser.read(self.ser.in_waiting)
+			w = 0
+			first = True
+			for b in ret:
+				if first:
+					w = int(b) * 256
+				first = not first
+				if needaddr:
+					print("%04x "%addr, end='')
+					needaddr = False
+				if first:
+					if 'd' in self.options:
+						if 's' in self.options:
+							ww = w + int(b)
+							if ww > 0x7fff: ww = -(0x10000 - ww)
+							print("%6d "%(ww), end='')
+						else:
+							print("%5d "%(w + int(b)), end='')
+					else:
+						print("%04x "%(w + int(b)), end='')
+				count += 1
+				if count % 8 == 0:
+					addr += 8
+					print("")
+					needaddr = True
+			sleep(0.1)
+		if not self.scriptmode: print('\nok')
+		return False
+
+	def do_dumpl(self, line):
+		"""
+		dumpl [-d] [-s] <hexaddr> <length>          dump long words (big-endian)
+		"""
+		self.flush()
+		addr = self.splitdump(line)
+		if self.length & 1 : self.length -= 1  # make it even
+		if self.length == 0 or self.length > 63:
+			self.length = 48
+		data = [(addr >> 8), (addr & 255), (128+self.length)]
+		self.ser.write(bytes(data))
+		self.wait(0.1)
+		self.flush(len(data))
+		self.wait(0.1)
+		count = 0
+		needaddr = True
+		while self.ser.in_waiting:
+			ret = self.ser.read(self.ser.in_waiting)
+			w = 0
+			nb = 0
+			for b in ret:
+				w *= 256
+				w += int(b)
+				nb += 1
+				if needaddr:
+					print("%04x "%addr, end='')
+					needaddr = False
+				if nb == 4:
+					if 'd' in self.options:
+						if 's' in self.options:
+							if w > 0x7fffffff: w = -(0x100000000 - w)
+							print("%10d "%(w), end='')
+						else:
+							print("%11d "%(w), end='')
+					else:
+						print("%08x "%(w), end='')
+					nb = 0
+					w = 0
 				count += 1
 				if count % 8 == 0:
 					addr += 8
