@@ -14,9 +14,17 @@ running
 commands
 --------
 
-- **dump** \[ \<hexaddr\> \[ \<length\> \] \]
+- **dump** \[ -d \[ -s \] \] \[ \<hexaddr\> \[ \<length\> \] \]
 
->dump <length> bytes at \<hexaddress\> as hex bytes. defaults to 48 bytes. Dump without address dumps from last known address.
+>dump <length> bytes at \<hexaddress\>. defaults to 48 bytes. Dump without address dumps from last known address. Will normally dump in hex, but there is an option for decimal and signed.
+
+- **dumpw** \[ -d \[ -s \] \] \[ \<hexaddr\> \[ \<length\> \] \]
+
+>dump <length> 16-bit words at \<hexaddress\>. defaults to 31 words. Dump without address dumps from last known address. Will normally dump in hex, but there is an option for decimal and signed.
+
+- **dumpl** \[ -d \[ -s \] \] \[ \<hexaddr\> \[ \<length\> \] \]
+
+>dump <length> 32-bit words at \<hexaddress\>. defaults to 15 bytes. Dump without address dumps from last known address. Will normally dump in hex, but there is an option for decimal and signed.
 
 - **dumps** \<hexaddr\> \[ \<length\> \]
 
@@ -24,7 +32,15 @@ commands
 
 - **load** \<hexaddr\> ( \<byte\> ... | "string" )
 
->load bytes in to memory starting at <hexaddress>. If given a string adds nul character at the end.
+>load bytes into memory starting at <hexaddress>. If given a string adds nul character at the end. 
+
+- **loadw** \<hexaddr\> \<word\> ...
+
+>load words into memory starting at <hexaddress>. 
+
+- **loadl** \<hexaddr\> \<lword\> ...
+
+>load 32-bit words into memory starting at <hexaddress>.
 
 - **file** \<filename\>
 
@@ -58,10 +74,10 @@ caveats
 -------
 
 - Addresses are **alway**s expected to be hexadecimal digits.
-- Bytes to be loaded are specified in **decimal** unless prefixed with 0x or 0b.
+- Values to be loaded are specified in **decimal** unless prefixed with 0x or 0b.
 - When running a program output is dumped on screen. However, if the
  running program stops emitting output for longer than 1 second, the run
  command will return while the program keeps on running. The **flush** command
- might then be used to retreive any later output.
+ might then be used to retrieve any later output.
 
  
