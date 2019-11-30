@@ -580,7 +580,7 @@ class Monitor(cmd.Cmd):
 		"""
 		count = 0
 		while self.ser.in_waiting:
-			ret = self.ser.read(ser.in_waiting)
+			ret = self.ser.read(self.ser.in_waiting)
 			for b in ret:
 				print("%02x "%int(b), end='')
 				count += 1
@@ -588,6 +588,14 @@ class Monitor(cmd.Cmd):
 					print('')
 			sleep(0.1)
 		if not self.scriptmode: print('\nok')
+		return False
+
+	def do_break(self, line):
+		"""
+		break		dump any remaining characters in receive buffer and send break.
+		"""
+		self.do_flush(line)
+		self.ser.send_break()
 		return False
 
 	def do_exit(self, line):

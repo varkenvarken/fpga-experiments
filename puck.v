@@ -128,6 +128,7 @@ module top(
 	// interconnect wiring
 	// led access comes from uart as well as cpu
 	assign LED3 = c_led;
+	assign LED0 = monitor_control;
 
 	// uart access is shared by monitor and cpu
 	assign u_tx_byte = monitor_control ? m_tx_byte : c_tx_byte;
@@ -173,6 +174,9 @@ module top(
 
 		if (c_halted) begin
 			monitor_control <= 1;
+		end else if (u_recv_error) begin
+			monitor_control <= 1;
+			m_state <= START;
 		end else begin
 			if (monitor_control) begin
 				case(m_state)

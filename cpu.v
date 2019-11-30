@@ -92,7 +92,6 @@ module cpu(
 
 	always @(posedge clk)
 	begin
-		led <= 0;
 		write_en <= 0;
 		transmit <= 0;
 		halted <= 0;
@@ -103,8 +102,6 @@ module cpu(
 							pc <= startaddr;
 							sp <= {addr_width{1'b1}};
 							state <= FETCH;
-							led <= 1;
-							//counter <= 0;
 						end
 			FETCH	:	begin
 							c_raddr <= pc; 
@@ -118,7 +115,6 @@ module cpu(
 							if (hlt) begin // HLT
 								state <= START;
 								halted <= 1;
-								led <= 0;
 							end else if (one) begin // 1 byte opcode
 								case (opcode[6:4])
 									3'h0	:	case (opcode[3:0])	// specials
