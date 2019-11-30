@@ -489,7 +489,7 @@ class Monitor(cmd.Cmd):
 
 	def do_runps(self, line):
 		"""
-		runs <hexaddress> 	run program at <hexaddress> with a separate read process, showing output as unicode strings
+		runps <hexaddress> 	run program at <hexaddress> with a separate read process, showing output as unicode strings
 		"""
 		self.flush()
 		addr = self.splitload(line) # 
