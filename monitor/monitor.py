@@ -35,8 +35,9 @@
 import serial
 from time import sleep
 import cmd
-
+from glob import glob
 import os.path
+
 try:
 	import readline
 except ImportError:
@@ -45,12 +46,25 @@ except ImportError:
 histfile = os.path.expanduser('~/.monitor_history')
 histfile_size = 1000
 
+
+# https://stackoverflow.com/questions/16826172/filename-tab-completion-in-cmd-cmd-of-python
+def _complete_path(path):
+	if os.path.isdir(path):
+		return glob(os.path.join(path, '*'))
+	else:
+		return glob(path+'*')
+
 class Monitor(cmd.Cmd):
 	def __init__(self):
 		super().__init__()
 		self.scriptmode = False
 
+	def complete_file(self, text, line, start_idx, end_idx):
+		return _complete_path(text)
+
 	def preloop(self):
+		if readline:
+			readline.set_completer_delims(' \t\n')
 		if readline and os.path.exists(histfile):
 			readline.read_history_file(histfile)
 		self.ser = serial.Serial(port=self.dev, stopbits=serial.STOPBITS_TWO)
