@@ -53,7 +53,7 @@ class Monitor(cmd.Cmd):
 	def preloop(self):
 		if readline and os.path.exists(histfile):
 			readline.read_history_file(histfile)
-		self.ser = serial.Serial(port='/dev/ttyUSB1', stopbits=serial.STOPBITS_TWO)
+		self.ser = serial.Serial(port=self.dev, stopbits=serial.STOPBITS_TWO)
 		self.lastaddr = 0
 
 	def postloop(self):
@@ -504,11 +504,19 @@ class Monitor(cmd.Cmd):
 
 if __name__ == '__main__':
 	from argparse import ArgumentParser
+	from serial.tools import list_ports
+
 	parser = ArgumentParser()
-	parser.add_argument('-t', '--test', help='run in test mode', action="store_true")
+	parser.add_argument('-t', '--test', help='run in test mode (will not show prompts)', action="store_true")
+	parser.add_argument('-i', '--icestick', help='find icestick', action="store_true")
+	parser.add_argument('dev', nargs='?', default='/dev/ttyUSB1', help='serial device to connect to (will default to /dev/ttyUSB1')
+
 	args = parser.parse_args()
 
 	m = Monitor()
+	m.dev = args.dev
+	if args.icestick:
+		m.dev = sorted([p.device for p in list_ports.comports() if p.vid == 0x0403 and p.pid == 0x6010])[-1]
 	m.prompt = '' if args.test else '>'
 	m.scriptmode = args.test
 	m.cmdloop()
