@@ -37,6 +37,7 @@ from time import sleep
 import cmd
 from glob import glob
 import os.path
+from threading import Thread
 
 try:
 	import readline
@@ -429,6 +430,86 @@ class Monitor(cmd.Cmd):
 				sleep(0.1)
 			sleep(1.0) # timeout, we do not know when a program is going to end
 			again = self.ser.in_waiting > 0
+		if not self.scriptmode: print('\nok')
+		return False
+
+	def reads(self):
+		while True:
+			while self.ser.in_waiting:
+				ret = self.ser.read(self.ser.in_waiting)
+				print(ret.decode('utf-8', "backslashreplace"), end='', flush=True)
+				if self.stop:
+					return
+				sleep(0.1)
+			if self.stop:
+				return
+
+	def read(self):
+		count = 0
+		while True:
+			while self.ser.in_waiting:
+				ret = self.ser.read(self.ser.in_waiting)
+				for b in ret:
+					print("%02x "%int(b), end='', flush=True)
+					count += 1
+					if count % 16 == 0:
+						print('')
+				if self.stop:
+					return
+				sleep(0.1)
+			if self.stop:
+				return
+
+
+	def do_runp(self, line):
+		"""
+		runp <hexaddress> 	run program at <hexaddress> with a separate read process, showing output as hexbytes
+		"""
+		self.flush()
+		addr = self.splitload(line) # 
+		data = [(addr >> 8), (addr & 255), (0xc0)]
+		self.ser.write(bytes(data))
+		self.wait(0.1)
+		self.flush(len(data))
+		if not self.scriptmode: print('running...')
+		self.stop = False
+		p = Thread(target = self.read)
+		p.start()
+		again = True
+		while again:
+			try:
+				inp = input()
+				inp += '\n'
+				self.ser.write(bytes([ord(i) for i in inp]))
+			except:
+				again = False
+				self.stop = True
+		if not self.scriptmode: print('\nok')
+		return False
+
+	def do_runps(self, line):
+		"""
+		runs <hexaddress> 	run program at <hexaddress> with a separate read process, showing output as unicode strings
+		"""
+		self.flush()
+		addr = self.splitload(line) # 
+		data = [(addr >> 8), (addr & 255), (0xc0)]
+		self.ser.write(bytes(data))
+		self.wait(0.1)
+		self.flush(len(data))
+		if not self.scriptmode: print('running...')
+		self.stop = False
+		p = Thread(target = self.reads)
+		p.start()
+		again = True
+		while again:
+			try:
+				inp = input()
+				inp += '\n'
+				self.ser.write(bytes([ord(i) for i in inp]))
+			except:
+				again = False
+				self.stop = True
 		if not self.scriptmode: print('\nok')
 		return False
 
