@@ -33,7 +33,7 @@
 # a hung connection impossible but it consider it good enough :-)
 
 import serial
-from time import sleep
+from time import sleep, time
 import cmd
 from glob import glob
 import os.path
@@ -140,6 +140,15 @@ class Monitor(cmd.Cmd):
 			else:
 				self.length = 0
 		self.hexbytes = hexbytes
+		return self.addr
+
+	def splitrun(self, line):
+		"""
+		split line into arguments:  ADDR [args ...]
+		"""
+		self.args = line.strip().split()
+		self.addr = int(self.args[0],16)
+		hexbytes = []
 		return self.addr
 
 	def wait(self,t):
@@ -410,7 +419,7 @@ class Monitor(cmd.Cmd):
 		run <hexaddress> 	run program at <hexaddress> showing output as hexbytes
 		"""
 		self.flush()
-		addr = self.splitload(line) # only interested in address, bytes will be ignored
+		addr = self.splitrun(line)
 		data = [(addr >> 8), (addr & 255), (0xc0)]
 		self.ser.write(bytes(data))
 		self.wait(0.1)
@@ -437,7 +446,13 @@ class Monitor(cmd.Cmd):
 		while True:
 			while self.ser.in_waiting:
 				ret = self.ser.read(self.ser.in_waiting)
-				print(ret.decode('utf-8', "backslashreplace"), end='', flush=True)
+				dt = time() - self.starttime
+				string = ret.decode('utf-8', "backslashreplace")
+				if self.timestamp:
+					lines = string.split('\n')
+					t = "[%6.3f] \n"%dt
+					string = t.join(lines)
+				print(string, end='', flush=True)
 				if self.stop:
 					return
 				sleep(0.1)
@@ -466,7 +481,7 @@ class Monitor(cmd.Cmd):
 		runp <hexaddress> 	run program at <hexaddress> with a separate read process, showing output as hexbytes
 		"""
 		self.flush()
-		addr = self.splitload(line) # 
+		addr = self.splitrun(line)
 		data = [(addr >> 8), (addr & 255), (0xc0)]
 		self.ser.write(bytes(data))
 		self.wait(0.1)
@@ -492,7 +507,10 @@ class Monitor(cmd.Cmd):
 		runps <hexaddress> 	run program at <hexaddress> with a separate read process, showing output as unicode strings
 		"""
 		self.flush()
-		addr = self.splitload(line) # 
+		addr = self.splitrun(line)
+		self.timestamp = False
+		if len(self.args) > 1 and self.args[1] == '-t':
+			self.timestamp = True
 		data = [(addr >> 8), (addr & 255), (0xc0)]
 		self.ser.write(bytes(data))
 		self.wait(0.1)
@@ -504,6 +522,7 @@ class Monitor(cmd.Cmd):
 		again = True
 		while again:
 			try:
+				self.starttime = time()
 				inp = input()
 				inp += '\n'
 				self.ser.write(bytes([ord(i) for i in inp]))
@@ -555,7 +574,7 @@ class Monitor(cmd.Cmd):
 		runs <hexaddress> 	run program at <hexaddress> showing output as unicode chars
 		"""
 		self.flush()
-		addr = self.splitload(line)
+		addr = self.splitrun(line)
 		data = [(addr >> 8), (addr & 255), (0xc0)]
 		self.ser.write(bytes(data))
 		self.wait(0.1)

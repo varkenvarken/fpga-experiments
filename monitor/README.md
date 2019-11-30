@@ -67,7 +67,7 @@ commands
 >run program at *hexaddress* with a separate read process, showing output as hexbytes
 >Ctrl-C ends connection
 
-- **runps** *hexaddress*
+- **runps** *hexaddress* \[ *-t* \]
 
 >run program at *hexaddress* with a separate read process, showing output as unicode strings
 >Ctrl-C ends connection
