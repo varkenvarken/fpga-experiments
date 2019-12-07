@@ -40,6 +40,9 @@ Goals
 
 > It comes in two parts: hardware to load and dump memory contents, and a python program to make life a bit easier.
 
+> The hardware part is implemented in the toplevel puck.v file. The
+[python front-end](https://github.com/varkenvarken/fpga-experiments/tree/master/monitor) is in a folder of iets own along with some documentatiin.
+
 >The hardware is mainly about reusing an existing [uart design](https://github.com/cyrozap/osdvu) and making our first steps into Verilog.
 
 - an **assembler**
