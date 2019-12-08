@@ -96,6 +96,14 @@ opcodes = {
 	'WORD'		: {'data'	 : (2,0)},
 	}
 
+ropcodes = {}
+for op in opcodes:
+	modes = opcodes[op]
+	for m in modes:
+		if m != 'data':
+			c,l = modes[m]
+			ropcodes[c] = (op, m, l)
+
 labels = {}
 code = []
 
@@ -235,7 +243,7 @@ def process(line, echo=False):
 								if type(addr) is tuple: # unresolved label
 									code.append((address,(addr,address)))
 								else:
-									code.append((address,(addr - address)-1))
+									code.append((address,(addr - address)))
 								address += 1
 							elif 'long' in info:
 								if echo: print("%03d %04x %02x %-20s %s" % (lineno, address, info['long'][0], groups['addr'], line), file=sys.stderr)
@@ -323,12 +331,50 @@ if __name__ == '__main__':
 	resolve()
 
 	if args.debug:
+		isopcode = True
+		longmode = False
+		relative = False
+		vhi = 0
 		for c in code:
-			print("%04x %s" % c, file=sys.stderr)
+			ad,op = c
+			if isopcode:
+				if op in ropcodes:
+					(mnemonic, mode, nbytes) = ropcodes[op]
+				else:
+					if (op & 0b11100000) in ropcodes:
+						(mnemonic, mode, nbytes) = ropcodes[op & 0b11100000]
+						longmode = True
+						vhi = op & 0b00011111
+					else:
+						print("%04x %s [UNKOWN OPCODE]" % (ad,op), file=sys.stderr)
+						continue
+				print("%04x %02x %-7s %s" % (ad, op, mnemonic, '#' if mode == 'imm' else ''), end='', file=sys.stderr)
+				relative = mode == 'relative'
+				if nbytes < 2:
+					print(file=sys.stderr)
+				else:
+					isopcode = False
+			else:
+				if longmode:
+					op = vhi * 256 + op
+					op = "%04x"% op
+				elif relative:
+					ad2 = ad + 1 + op
+					ad2 = "[%04x]"% ad2
+				elif type(op) is int:
+					if op < 0 : op += 256
+					op = "%02x"% op
+				print("%s %s" % (op, ad2 if relative else ''), file=sys.stderr)
+				isopcode = True
+				longmode = False
+				relative = False
 
 	if args.labels:
 		for label in sorted(labels):
-			print("%-20s %s"%(label,labels[label]), file=sys.stderr)
+			name,ad = label,labels[label]
+			if type(ad) is int:
+				ad = "%04x"% ad
+			print("%-20s %s"%(name, ad), file=sys.stderr)
 
 	fill()
 
