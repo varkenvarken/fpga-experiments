@@ -237,7 +237,8 @@ def assemble(lines, debug=False):
 	deflines = None
 	defop = None
 	while len(lines):
-		line = lines.pop(0)
+		filename, linenumber, line = lines.pop(0)
+		#print(filename, linenumber, line, file=sys.stderr)
 		line = stripcomment(line).strip()
 		if line != '':
 			elements = line.split(None,1)
@@ -250,12 +251,13 @@ def assemble(lines, debug=False):
 					deflines = None
 					defop = None
 				else:
-					deflines.append(line)
+					#print('userdef',filename, linenumber, line, file=sys.stderr)
+					deflines.append((filename, linenumber, line))
 				continue
 
 			if op.endswith(':'):
 				label=op[:-1]
-				if label in labels: warning('redefined label at line %d'%lineno)
+				if label in labels: warning('%s[%d]redefined label at line %d'%(filename,linenumber))
 				if operand == '':
 					labels[label]=addr  # implicit label definition
 				else:
@@ -269,21 +271,26 @@ def assemble(lines, debug=False):
 				deflines = list()
 				continue
 			else:
-				opcode = opcodes[op.upper()]
-				if opcode.userdefined != None:
-					for ul in reversed(opcode.userdefined):
-						lines.insert(0,ul)
+				try:
+					opcode = opcodes[op.upper()]
+					if opcode.userdefined != None:
+						for ul in reversed(opcode.userdefined):
+							#print(ul, file=sys.stderr)
+							lines.insert(0,ul)
+						continue
+					else:
+						addr+=opcode.length(operand)  # this does also cover byte,byte0 and word,word0,long,long0 directives
+				except KeyError:
+					print("Error: %s[%d] unknown opcode %s"%(filename, linenumber, op), file=sys.stderr)
 					continue
-				else:
-					addr+=opcode.length(operand)  # this does also cover byte,byte0 and word,word0,long,long0 directives
-		processed_lines.append(line)
+		processed_lines.append((filename, linenumber, line))
 
 	#pass 2, label bit is the same except we generate errors when we cannot resolve
 	code=bytearray()
 	addr=0
 	lines = processed_lines
-	for lineno,line in enumerate(lines,start=1):
-		if debug : dline = "[%3d] %s"%(lineno, line.strip())
+	for filename, linenumber, line in lines:
+		if debug : dline = "%s[%3d] %s"%(filename, linenumber, line.strip())
 		line = stripcomment(line).strip()
 		if line == '': continue
 		elements = line.split(None,1)
@@ -304,11 +311,14 @@ def assemble(lines, debug=False):
 					addr = newaddr
 			if debug : dcode = "%04x %s "%(addr, label)
 		else:
-			pp=opcodes[op.upper()]
-			newcode=pp.code(operand, addr, labels)
-			code.extend(newcode)
-			if debug : dcode = "%04x %s "%(addr, " ".join("%02x"%b for b in newcode))
-			addr += len(newcode)
+			try:
+				pp=opcodes[op.upper()]
+				newcode=pp.code(operand, addr, labels)
+				code.extend(newcode)
+				if debug : dcode = "%04x %s "%(addr, " ".join("%02x"%b for b in newcode))
+				addr += len(newcode)
+			except Exception as e:
+				print("Error: %s[%d] %s"%(filename, linenumber, " ".join(e.args)), file=sys.stderr)
 		if debug: print("%-30s %s"%(dcode, dline), file=sys.stderr)
 	# return results as bytes
 	return code, labels, errors
@@ -321,7 +331,7 @@ if __name__ == '__main__':
 	parser.add_argument('files', metavar='FILE', nargs='*', help='files to read, if empty, stdin is used')
 	args = parser.parse_args()
 
-	lines = [ line for line in fileinput.input(files=args.files) ]
+	lines = [ (fileinput.filename(),fileinput.filelineno(),line) for line in fileinput.input(files=args.files) ]
 
 	code, labels, errors = assemble(lines, args.debug)
 
