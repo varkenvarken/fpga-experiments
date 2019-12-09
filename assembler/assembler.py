@@ -318,7 +318,7 @@ def assemble(lines, debug=False):
 				if debug : dcode = "%04x %s "%(addr, " ".join("%02x"%b for b in newcode))
 				addr += len(newcode)
 			except Exception as e:
-				print("Error: %s[%d] %s"%(filename, linenumber, " ".join(e.args)), file=sys.stderr)
+				print("Error: %s[%d] %s"%(filename, linenumber, e.args), file=sys.stderr)
 		if debug: print("%-30s %s"%(dcode, dline), file=sys.stderr)
 	# return results as bytes
 	return code, labels, errors
@@ -331,7 +331,11 @@ if __name__ == '__main__':
 	parser.add_argument('files', metavar='FILE', nargs='*', help='files to read, if empty, stdin is used')
 	args = parser.parse_args()
 
-	lines = [ (fileinput.filename(),fileinput.filelineno(),line) for line in fileinput.input(files=args.files) ]
+	try:
+		lines = [ (fileinput.filename(),fileinput.filelineno(),line) for line in fileinput.input(files=args.files) ]
+	except FileNotFoundError as e:
+		print(e, file=sys.stderr)
+		sys.exit(2)
 
 	code, labels, errors = assemble(lines, args.debug)
 
@@ -339,15 +343,16 @@ if __name__ == '__main__':
 		for label in sorted(labels):
 			print("%-20s %04x"%(label,labels[label]), file=sys.stderr)
 
-	nbytes = len(code)
-	start = 0
-	end = 63
-	while end <= nbytes:
-		if args.preamble: sys.stdout.buffer.write(bytes([(start>>8),(start&0xff),0x7f]))
-		sys.stdout.buffer.write(code[start:end])
-		start = end
-		end += 63
-	if args.preamble: sys.stdout.buffer.write(bytes([(start>>8),(start&0xff),0x40 + nbytes - start]))
-	sys.stdout.buffer.write(code[start:nbytes])
+	if errors == 0:
+		nbytes = len(code)
+		start = 0
+		end = 63
+		while end <= nbytes:
+			if args.preamble: sys.stdout.buffer.write(bytes([(start>>8),(start&0xff),0x7f]))
+			sys.stdout.buffer.write(code[start:end])
+			start = end
+			end += 63
+		if args.preamble: sys.stdout.buffer.write(bytes([(start>>8),(start&0xff),0x40 + nbytes - start]))
+		sys.stdout.buffer.write(code[start:nbytes])
 
 	sys.exit(errors > 0)
