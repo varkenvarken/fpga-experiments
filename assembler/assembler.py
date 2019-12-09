@@ -66,7 +66,6 @@ class Opcode:
 				return values
 			else:
 				values = [eval(v, globals(), labels) for v in operand.split(',')]
-				print(operand, values)
 				if self.addzero:
 					values.append(0)
 				if self.bytes:
@@ -238,7 +237,6 @@ def assemble(lines, debug=False):
 	defop = None
 	while len(lines):
 		filename, linenumber, line = lines.pop(0)
-		#print(filename, linenumber, line, file=sys.stderr)
 		line = stripcomment(line).strip()
 		if line != '':
 			elements = line.split(None,1)
@@ -251,14 +249,15 @@ def assemble(lines, debug=False):
 					deflines = None
 					defop = None
 				else:
-					#print('userdef',filename, linenumber, line, file=sys.stderr)
 					deflines.append((filename, linenumber, line))
 				continue
 
-			if op.endswith(':'):
+			if op.endswith(':') or op.endswith('='):
+				constant = op.endswith('=')
 				label=op[:-1]
-				if label in labels: warning('%s[%d]redefined label at line %d'%(filename,linenumber))
+				if label in labels: warning('%s[%d]redefined label'%(filename,linenumber))
 				if operand == '':
+					if constant: warning('%s[%d]empty constant definition, default to addr'%(filename,linenumber))
 					labels[label]=addr  # implicit label definition
 				else:
 					try:
@@ -275,7 +274,6 @@ def assemble(lines, debug=False):
 					opcode = opcodes[op.upper()]
 					if opcode.userdefined != None:
 						for ul in reversed(opcode.userdefined):
-							#print(ul, file=sys.stderr)
 							lines.insert(0,ul)
 						continue
 					else:
@@ -296,26 +294,37 @@ def assemble(lines, debug=False):
 		elements = line.split(None,1)
 		op = elements[0]
 		operand = elements[1] if len(elements) > 1 else ''
-		if op.endswith(':'):
+		if op.endswith(':')  or op.endswith('='):
+			constant = op.endswith('=')
 			label=op[:-1]
 			if operand == '':
 				labels[label]=addr  # implicit label definition
 			else:
 				newaddr=eval(operand,globals(),labels)
-				labels[label]=newaddr  # explicit label definition, we should build in a check to check for rolling backwards
-				fill = newaddr - addr
-				if fill < 0:
-					warning("ĺabel %s is defined at lower address than current")
-				else:
-					code.extend([0] * fill)
-					addr = newaddr
+				labels[label]=newaddr  # explicit label definition
+				if not constant:		# only labels update the current address and may fill intermediate space
+					fill = newaddr - addr
+					if fill < 0:
+						warning('%s[%d]label %s defined to be at lower address than current'%(filename,linenumber,label))
+					else:
+						code.extend([0] * fill)
+						addr = newaddr
 			if debug : dcode = "%04x %s "%(addr, label)
 		else:
 			try:
 				pp=opcodes[op.upper()]
 				newcode=pp.code(operand, addr, labels)
 				code.extend(newcode)
-				if debug : dcode = "%04x %s "%(addr, " ".join("%02x"%b for b in newcode))
+				if debug :
+					if pp.data:
+						a = addr
+						dcode = ""
+						for i in range(0, len(newcode), 8):
+							dcode += "%04x %s\n"%(a, " ".join("%02x"%b for b in newcode[i:i+8]))
+							a += 8
+						dcode = dcode[:-1] + "  " + "".join(["   "] * ((8 - len(newcode)%8)%8))
+					else:
+						dcode = "%04x %s"%(addr, " ".join("%02x"%b for b in newcode))
 				addr += len(newcode)
 			except Exception as e:
 				print("Error: %s[%d] %s"%(filename, linenumber, e.args), file=sys.stderr)
