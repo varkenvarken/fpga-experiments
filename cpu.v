@@ -24,6 +24,7 @@ module cpu(
 	reg [addr_width-1:0] sp; // stack pointer (could be reduced to 8 bits to save space); will be initialized to the last address
 	reg [addr_width-1:0] base0;
 	reg [addr_width-1:0] base1;
+	reg [addr_width-1:0] base1plusD;
 	reg [7:0] opcode, operand; //, outbyte;
 	reg [7:0] A,B,C,D;
 	reg [1:0] flags;
@@ -89,6 +90,11 @@ module cpu(
 	assign rom_raddr = state;
 
 	//reg [4:0] counter; // 5-bit counter that can be moved to A; not really enough for proper cycle counting
+
+	always @(posedge clk)
+	begin
+		base1plusD <= base1 + D;
+	end
 
 	always @(posedge clk)
 	begin
@@ -182,15 +188,15 @@ module cpu(
 															  end
 													4'b1001,
 													4'b1011	: begin // STA (base1 + D)
-																c_waddr <= base1 + D;
+																c_waddr <= base1plusD;
 																write_en <= 1;
 																dwrite <= A;
-																state <= FETCH; //STIDPWAIT; // FETCH
-																if(register==3)	D <= D + 1;
+																state <= FETCH; // STIDPWAIT;
+																//if(register==3)	D <= D + 1;
 															  end
 													default : state <= FETCH;
 												endcase
-									3'h7	:	begin				// ALU 
+									3'h7	:	begin				// ALU
 													A <= result;
 													flags[0] <= zero;
 													flags[1] <= c_out;
@@ -310,9 +316,10 @@ module cpu(
 								2'h3	: 	begin D <= dread; end
 							endcase
 						end
-			WAITBASER:	if(register == 2)	C <= C + 1;
+			//WAITBASER:	if(register == 2)	C <= C + 1;
 			WAITBASER1:	begin 
 							A <= dread;
+							if(register == 2)	C <= C + 1;
 						end
 			STACKPUSH2:	begin
 							sp <= sp - 1;
@@ -354,7 +361,10 @@ module cpu(
 								state <= FETCH;
 							end
 						end
-			//STIDPWAIT:	if(register==3)	D <= D + 1;
+			STIDPWAIT:	begin
+							write_en <= 1;
+							//if(register==3)	D <= D + 1;
+						end
 		endcase
 	end
 
