@@ -27,7 +27,7 @@ all: $(OUTPUT)
 rom.v: rom.py
 	$(ROMGEN) > $@
 
-pll.v:
+pll.v: Makefile
 	icepll -i 12 -o 24 -f $@ -m
 
 clean:
