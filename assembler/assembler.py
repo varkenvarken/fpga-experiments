@@ -265,6 +265,8 @@ opcode_list = [
      implied=0x7e),
   Opcode(name='SHRC', desc='A = A >> 1, A[7] = Carry',
      implied=0x7f),
+  Opcode(name='NOP', desc='Do nothing',
+     implied=0x04),
   Opcode(name='BYTE', desc='define byte values (comma separated or string)',
      data=True, bytes=True , words=False, longs=False, addzero=False), 
   Opcode(name='BYTE0', desc='define byte values + extra nul (comma separated or string)',
@@ -369,8 +371,12 @@ def assemble(lines, debug=False):
 			if operand == '':
 				labels[label]=addr  # implicit label definition
 			else:
-				newaddr=eval(operand,globals(),labels)
-				labels[label]=newaddr  # explicit label definition
+				try:
+					newaddr=eval(operand,globals(),labels)
+					labels[label]=newaddr  # explicit label definition
+				except Exception as e:
+					print("Error: %s[%d] syntax error %s"%(filename, linenumber, operand), file=sys.stderr)
+					continue
 				if not constant:		# only labels update the current address and may fill intermediate space
 					fill = newaddr - addr
 					if fill < 0:
@@ -396,7 +402,7 @@ def assemble(lines, debug=False):
 						dcode = "%04x %s"%(addr, " ".join("%02x"%b for b in newcode))
 				addr += len(newcode)
 			except Exception as e:
-				print("Error: %s[%d] %s"%(filename, linenumber, e.args), file=sys.stderr)
+				print("Error: %s[%d] %s %s"%(filename, linenumber, e.args[0], line), file=sys.stderr)
 		if debug: print("%-30s %s"%(dcode, dline), file=sys.stderr)
 	# return results as bytes
 	return code, labels, errors
