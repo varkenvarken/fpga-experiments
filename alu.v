@@ -54,9 +54,9 @@ module alu(
 		10, //: result <= min_a;
 		11: result <= cmp;
 		12: result <= shiftl;
-		13: result <= shiftl;
-		14: result <= shiftlc;
-		15: result <= shiftrc;
+		13,14,15: result <= shiftr;
+		//14: result <= shiftlc;
+		//15: result <= shiftrc;
 	endcase
 	end
 
