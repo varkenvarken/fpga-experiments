@@ -86,9 +86,44 @@ module cpu(
 	localparam STIDPWAIT1= 5'd31; // next state is always FETCH
 	reg [4:0] state = START;
 
-	wire [4:0] rom_raddr, next_state;
-	rom32x4 rom(rom_raddr, clk, next_state);
-	assign rom_raddr = state;
+	//wire [4:0] rom_raddr, next_state;
+	//rom32x4 rom(rom_raddr, clk, next_state);
+	//assign rom_raddr = state;
+	reg [4:0] next_state;
+
+	always @*
+	begin
+			 if(state == 	START) 	next_state = START;
+		else if(state == 	FETCH) 	next_state = WAIT;
+		else if(state == 	DECODE) next_state = FETCH;
+		else if(state ==	OPLOAD) next_state = DECODE;
+		else if(state ==	ECHO) 	next_state = ECHO1;
+		else if(state ==	ECHO1) 	next_state = ECHO1;
+		else if(state ==	WAIT) 	next_state = OPLOAD;
+		else if(state ==	WAIT2) 	next_state = OPLOAD2;
+		else if(state ==	OPLOAD2)next_state = DECODE2;
+		else if(state ==	DECODE2)next_state = FETCH;
+		else if(state ==	WAIT3) 	next_state = MEMLOAD;
+		else if(state ==	MEMLOAD)next_state = FETCH;
+		else if(state ==	READ) 	next_state = READ;
+		else if(state ==	STACKPUSH) 	next_state = STACKPUSH2;
+		else if(state ==	STACKPUSH2) 	next_state = FETCH;
+		else if(state ==	CALL1) 	next_state = CALL2;
+		else if(state ==	CALL2) 	next_state = CALL3;
+		else if(state ==	CALL3) 	next_state = CALL4;
+		else if(state ==	CALL4) 	next_state = CALL5;
+		else if(state ==	CALL5) 	next_state = FETCH;
+		else if(state ==	RETURN1)next_state = RETURN2;
+		else if(state ==	RETURN2)next_state = RETURN3;
+		else if(state ==	RETURN3)next_state = RETURN4;
+		else if(state ==	RETURN4)next_state = RETURN5;
+		else if(state ==	RETURN5)next_state = FETCH;
+		else if(state ==	STIDPWAIT) 	next_state = STIDPWAIT1;
+		else if(state ==	WAITBASER) 	next_state = WAITBASER1;
+		else if(state ==	WAITBASER1) 	next_state = FETCH;
+		else if(state ==	STIDPWAIT1) 	next_state = FETCH;
+		else next_state = FETCH;
+	end
 
 	//reg [4:0] counter; // 5-bit counter that can be moved to A; not really enough for proper cycle counting
 
@@ -102,6 +137,7 @@ module cpu(
 		write_en <= 0;
 		transmit <= 0;
 		halted <= 0;
+
 		//counter <= counter + 1;
 		if(state)	state <= next_state;  // this statement is crucial as apparently the first couple of cycles sbram can output anything ...
 		case(state)

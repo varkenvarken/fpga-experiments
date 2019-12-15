@@ -68,21 +68,23 @@ module top(
 	// access to cpu
 	reg m_c_reset = 0;
 
-	wire p_clock_out, locked;
-	pll pll0(
-		iCE_CLK,
-		p_clock_out,
-		locked
-	);
-	assign LED4 = locked;
+// temportarily disable 24MHz pll clock because icebreaker doesn have SB_PLL_CORE (it does have SB_PLL_PAD )
+	wire p_clock_out; //, locked;
+//	pll pll0(
+//		iCE_CLK,
+//		p_clock_out,
+//		locked
+//	);
+//	assign LED4 = locked;
+	assign p_clock_out = iCE_CLK;
 
 	// uart instantiation
 	uart #(
 		.baud_rate(9600),                 // The baud rate in kilobits/s
-		.sys_clk_freq(24000000)           // The master clock frequency
+		.sys_clk_freq(12000000)           // The master clock frequency
 	)
 	uart0(
-		.clk(p_clock_out),                      // The master clock for this module
+		.clk(iCE_CLK),                      // The master clock for this module
 		.rst(u_reset),                      // Synchronous reset
 		.rx(RS232_Rx_TTL),                  // Incoming serial line
 		.tx(RS232_Tx_TTL),                  // Outgoing serial line

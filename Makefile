@@ -6,9 +6,16 @@ PROG = iceprog
 ROMGEN = python3 rom.py
 
 TOP = puck.v
-PCF = icestick.pcf
-DEVICE = --hx1k
-PACKAGE= tq144
+
+# icebreaker
+PCF = icebreaker.pcf
+DEVICE = --up5k
+PACKAGE= sg48
+# icestick
+#PCF = icestick.pcf
+#DEVICE = --hx1k
+#PACKAGE= tq144
+
 PLACER=heap
 
 OUTPUT = $(patsubst %.v,%.bin,$(TOP))
